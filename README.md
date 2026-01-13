@@ -58,10 +58,11 @@ To train the IQUMamba-1D model, use the `main.py` script with appropriate argume
 ## Citation
 If you find this code useful, please cite our paper:
 
-> Shaoyuan Gao, Wenpu Guo, Hao Shi, Ruiyan Peng. "IQUMamba-1D: A Mamba-Enhanced 1D U-Net for Single-Channel Communication Signal Blind Source Separation." *Accepted at Journal of King Saud University Computer and Information Sciences*, 2025.
+> Gao, S., Guo, W., Shi, H. et al. IQUMamba-1D: a Mamba-enhanced 1D U-Net for single-channel communication signal blind source separation. J. King Saud Univ. Comput. Inf. Sci. (2026). https://doi.org/10.1007/s44443-025-00440-5
 
 ## Acknowledgements
 *   We thank the authors of the [U-Mamba repository](https://github.com/bowang-lab/U-Mamba) for making their U-Net and Mamba integration code publicly available. The implementation of our 1D U-Net architecture in `models/IQUMamba.py` was inspired by and adapted from their work.
+
 
 
 
