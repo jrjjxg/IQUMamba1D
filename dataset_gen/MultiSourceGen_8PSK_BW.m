@@ -1,6 +1,6 @@
 function MultiSourceGen_8PSK_BW()
     for snr = -10:4:30
-        MultiSourceGen_i(2, snr, 20)
+        MultiSourceGen_i(2, snr, 10)
     end  
 end
 
@@ -95,15 +95,12 @@ function MultiSourceGen_i(num_sources, snr, num_files)
             case 2
                 symbol_rates = [5e6, 2.5e6];           % 5 MHz, 2.5 MHz
                 Fs_sps_array = [10, 20];               % samples per symbol
-                symbols_per_frame = [410, 205];        % symbols per frame
             case 3
                 symbol_rates = [5e6, 3.5e6, 2e6];     % 5 MHz, 3.5 MHz, 2 MHz (linearly decreasing)
                 Fs_sps_array = [10, 14, 25];          % samples per symbol
-                symbols_per_frame = [410, 287, 164];   % symbols per frame, proportional to symbol rates
             case 4
                 symbol_rates = [5e6, 4e6, 3e6, 2e6];  % 5 MHz, 4 MHz, 3 MHz, 2 MHz (linearly decreasing)
                 Fs_sps_array = [10, 12, 17, 25];      % samples per symbol
-                symbols_per_frame = [410, 328, 246, 164]; % symbols per frame, proportional to symbol rates
         end
         
         %% Initial phase configuration (each source: uniform in [0, π])
@@ -118,11 +115,17 @@ function MultiSourceGen_i(num_sources, snr, num_files)
         end
         
         %% Dataset parameters
-        samples_per_file = 250;      % number of frames per file
+        samples_per_file = 500;      % number of frames per file (paper setting)
         frame_length = 4096;         % samples per frame
         bits_per_symbol = 3;         % bits per symbol (8-PSK)
         total_frames = samples_per_file;
         total_samples = total_frames * frame_length;
+
+        % Derive symbols per frame from frame length and per-source samples-per-symbol
+        symbols_per_frame = zeros(1, num_sources);
+        for i = 1:num_sources
+            symbols_per_frame(i) = round(frame_length / Fs_sps_array(i));
+        end
         
         % Compute total symbols and bits
         total_symbols = zeros(num_sources, 1);
@@ -361,19 +364,29 @@ function MultiSourceGen_i(num_sources, snr, num_files)
             end
         end
         
-        %% Save data
-        save_path_mixed = sprintf('./%dSource_8PSK_Dataset_mixed_%d_SNR=%ddB.mat', ...
-                                num_sources, file_idx, snr);
-        save_path_target = sprintf('./%dSource_8PSK_Dataset_target_%d_SNR=%ddB.mat', ...
-                                 num_sources, file_idx, snr);
+        %% Save data (project-relative, matching IQUMamba1D dataloader patterns)
+        script_dir = fileparts(mfilename('fullpath'));
+        project_dir = fullfile(script_dir, '..');
+        synthetic_root = fullfile(project_dir, 'data', 'synthetic', '8PSK_Rs');
+        mix_dir = fullfile(synthetic_root, 'mixture');
+        tgt_dir = fullfile(synthetic_root, 'target');
+        bits_dir = fullfile(synthetic_root, 'bits');
+        if ~exist(mix_dir, 'dir'); mkdir(mix_dir); end
+        if ~exist(tgt_dir, 'dir'); mkdir(tgt_dir); end
+        if ~exist(bits_dir, 'dir'); mkdir(bits_dir); end
+
+        save_path_mixed = fullfile(mix_dir, sprintf('%dSource_8PSK_Dataset_mixed_%d_SNR=%ddB.mat', ...
+                                num_sources, file_idx, snr));
+        save_path_target = fullfile(tgt_dir, sprintf('%dSource_8PSK_Dataset_target_%d_SNR=%ddB.mat', ...
+                                 num_sources, file_idx, snr));
         
         save(save_path_mixed, 'mixed_frames', '-v7.3');
         save(save_path_target, 'ideal_frames', '-v7.3');
         
         % Save bit data (per source)
         for src_idx = 1:num_sources
-            save_path_bit = sprintf('./%dSource_8PSK_BitData_%d_SNR=%ddB_Source%d.mat', ...
-                                  num_sources, file_idx, snr, src_idx);
+            save_path_bit = fullfile(bits_dir, sprintf('%dSource_8PSK_BitData_%d_SNR=%ddB_Source%d.mat', ...
+                                  num_sources, file_idx, snr, src_idx));
             file_bits = bit_data_all{src_idx};
             save(save_path_bit, 'file_bits', '-v7.3');
         end

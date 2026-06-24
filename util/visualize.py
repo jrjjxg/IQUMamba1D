@@ -1,25 +1,37 @@
 from datetime import datetime
 from matplotlib import pyplot as plt
 import numpy as np
+from pathlib import Path
 
 from datetime import datetime
 
 import matplotlib.font_manager as fm
 
 # Set Euclid font (please adjust the actual font file path)
-def setup_euclid_font():
-    # Try to set Euclid font
-    try:
-        # Try to add Euclid font
-        fm.fontManager.addfont('/root/fonts/euclid.ttf')  # Replace with actual path
-        plt.rcParams['font.family'] = 'Euclid'
-    except:
-        # If Euclid font is not available, use default font
-        print("Euclid font not available, using default font")
-        pass
+def _font_available(name: str) -> bool:
+    return any(f.name == name for f in fm.fontManager.ttflist)
+
+
+def setup_euclid_font() -> bool:
+    # Try to set Euclid font if it exists locally
+    project_root = Path(__file__).resolve().parents[1]
+    euclid_ttf = project_root / "fonts" / "euclid.ttf"
+    if euclid_ttf.exists():
+        try:
+            fm.fontManager.addfont(str(euclid_ttf))
+        except Exception:
+            pass
+    return _font_available('Euclid')
 
 # Call font setup before class definitions
-setup_euclid_font()
+EUCLID_AVAILABLE = setup_euclid_font()
+
+
+def set_plot_font(prefer_euclid: bool = True) -> None:
+    if prefer_euclid and EUCLID_AVAILABLE:
+        plt.rcParams['font.family'] = ['Euclid', 'DejaVu Sans', 'sans-serif']
+    else:
+        plt.rcParams['font.family'] = ['DejaVu Sans', 'sans-serif']
 
 
 def plot_losses(train_losses, val_losses, results_folder, signal_names=['BPSK', 'QPSK']):
@@ -63,8 +75,10 @@ def plot_losses(train_losses, val_losses, results_folder, signal_names=['BPSK', 
     
     plt.tight_layout()
 
-    plt.savefig(f'/root/IQUMamba1D/results/{results_folder}/loss_plot.png', 
-                dpi=300, bbox_inches='tight')
+    project_root = Path(__file__).resolve().parents[1]
+    out_path = project_root / "results" / results_folder / "loss_plot.png"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(str(out_path), dpi=300, bbox_inches='tight')
     plt.close()
 
 def plot_signals(input_signal, target, prediction, sample_idx, snr, logger, results_folder, 
@@ -90,7 +104,7 @@ def plot_signals(input_signal, target, prediction, sample_idx, snr, logger, resu
     plt.rcParams['figure.facecolor'] = 'white'
     plt.rcParams['axes.facecolor'] = 'white'
     plt.rcParams['savefig.facecolor'] = 'white'
-    plt.rcParams['font.family'] = 'Euclid'
+    set_plot_font(prefer_euclid=True)
     #plt.rcParams['font.serif'] = ['Times', 'DejaVu Serif', 'serif']
     plt.rcParams['font.size'] = 30
     
@@ -151,8 +165,11 @@ def plot_signals(input_signal, target, prediction, sample_idx, snr, logger, resu
         plt.tight_layout()
         
         # Save separation result plot for each source
-        source_filename = f'/root/IQUMamba1D/results/{results_folder}/saved_plots/{signal_name}_separation_SNR_{snr}dB_sample_{sample_idx}_{timestamp}.png'
-        plt.savefig(source_filename, dpi=600, bbox_inches='tight', facecolor='white')
+        project_root = Path(__file__).resolve().parents[1]
+        out_dir = project_root / "results" / results_folder / "saved_plots"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        source_filename = out_dir / f"{signal_name}_separation_SNR_{snr}dB_sample_{sample_idx}_{timestamp}.png"
+        plt.savefig(str(source_filename), dpi=600, bbox_inches="tight", facecolor="white")
         plt.close()
         logger.info(f'Saved {signal_name} separation plot to {source_filename}')
     
@@ -202,8 +219,11 @@ def plot_signals(input_signal, target, prediction, sample_idx, snr, logger, resu
     plt.tight_layout()
     
     # Save overview plot
-    overview_filename = f'/root/IQUMamba1D/results/{results_folder}/saved_plots/separation_overview_{signal_info}_SNR_{snr}dB_sample_{sample_idx}_{timestamp}.png'
-    plt.savefig(overview_filename, dpi=600, bbox_inches='tight', facecolor='white')
+    project_root = Path(__file__).resolve().parents[1]
+    out_dir = project_root / "results" / results_folder / "saved_plots"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    overview_filename = out_dir / f"separation_overview_{signal_info}_SNR_{snr}dB_sample_{sample_idx}_{timestamp}.png"
+    plt.savefig(str(overview_filename), dpi=600, bbox_inches="tight", facecolor="white")
     plt.close()
     logger.info(f'Saved separation overview plot to {overview_filename}')
     
@@ -331,16 +351,20 @@ def plot_correlation_vs_snr_enhanced(snr_list, overall_correlations, source_corr
     # Save images
     signal_info_filename = "_".join(signal_names) if signal_names else f"{num_sources}sources"
     
+    project_root = Path(__file__).resolve().parents[1]
+    out_dir = project_root / "results" / results_folder / "saved_plots"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # Save combined plot
-    fig.savefig(f'/root/IQUMamba1D/results/{results_folder}/saved_plots/correlation_vs_snr_combined_{signal_info_filename}.png', 
-                dpi=300, bbox_inches='tight')
+    combined_path = out_dir / f"correlation_vs_snr_combined_{signal_info_filename}.png"
+    fig.savefig(str(combined_path), dpi=300, bbox_inches='tight')
     plt.close(fig)
     
     # Save separate plots
-    fig2.savefig(f'/root/IQUMamba1D/results/{results_folder}/saved_plots/correlation_vs_snr_individual_{signal_info_filename}.png', 
-                 dpi=300, bbox_inches='tight')
+    individual_path = out_dir / f"correlation_vs_snr_individual_{signal_info_filename}.png"
+    fig2.savefig(str(individual_path), dpi=300, bbox_inches='tight')
     plt.close(fig2)
     
     print(f"Enhanced correlation plots saved:")
-    print(f"  Combined: /root/IQUMamba1D/results/{results_folder}/saved_plots/correlation_vs_snr_combined_{signal_info_filename}.png")
-    print(f"  Individual: /root/IQUMamba1D/results/{results_folder}/saved_plots/correlation_vs_snr_individual_{signal_info_filename}.png")
+    print(f"  Combined: {combined_path}")
+    print(f"  Individual: {individual_path}")

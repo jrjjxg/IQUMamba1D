@@ -29,6 +29,18 @@ This repository contains the code necessary to train, evaluate, and reproduce th
 
 *   Other dependencies are listed in `requirements.txt`.
 
+### Kaggle note (dependency conflicts)
+
+Kaggle notebooks come with a preinstalled `torch/torchvision/torchaudio` stack (and often RAPIDS packages like `cudf`).
+Installing the pinned `requirements.txt` may upgrade/downgrade core packages (for example `torch`, `pandas`, `pyarrow`)
+and cause runtime errors such as `RuntimeError: operator torchvision::nms does not exist`.
+
+For Kaggle, prefer:
+```bash
+pip install -q -r IQUMamba1D/requirements-kaggle.txt --no-deps
+```
+and only install missing packages if you hit import errors.
+
 ## Data Preparation
 
 1.  **Datasets:** Obtain the required datasets (e.g., RML2016.10a, RML2018.01a, TorchSig, 8PSK-A..., or your custom dataset).
@@ -55,6 +67,53 @@ To train the IQUMamba-1D model, use the `main.py` script with appropriate argume
     # Example command from run.bash (TorchSig dataset, multiple runs)
     python main.py --data_choice TorchSig --source_names BPSK QPSK --multiple_runs --num_runs 5 --start_seed 42
     ```
+
+### CTDCRN (Complex-domain baseline)
+
+This repo includes a CTDCRN reimplementation (paper: *Single-Channel Blind Source Separation in Wireless Communications: A Complex-Domain Deep Learning Approach*).
+
+*   **Stage:** `20` (config: `config/model_config_ctdcrn.yaml`)
+*   **Loss (paper-style):** `CTDCRN` / `PIT-CTDCRN`
+*   **Quick smoke test (no external data):**
+    ```bash
+    python main.py --stage 20 --data_choice debug_random --mode train --loss_fun PIT-CTDCRN --num_epochs 1 --batch_size 1 --num_workers 0 --train_subset_ratio 0.02 --source_names S1 S2 --compact_results
+    ```
+*   **Run on public RML2018-style data:**
+    ```bash
+    python main.py --stage 20 --data_choice 2018 --mode train --loss_fun PIT-CTDCRN --num_epochs 100 --batch_size 1 --num_workers 0 --source_names BPSK QPSK
+    ```
+
+### MRB-Net (Multi-domain Residual Block Network)
+
+This repo includes an MRB-Net reproduction (paper: *Single-Channel Blind Separation for the Same Frequency and Modulation Signals Based on Multi-domain Residual Block Convolutional Network*).
+
+*   **Stage:** `32` (config: `config/model_config_mrbnet.yaml`)
+*   **Loss (paper-style):** `SI-SNR` (or `PIT-SI-SNR` if source order is ambiguous)
+*   **BER reporting (synthetic MATLAB datasets with `bits/` only):** add `--report_ber` (optionally `--ber_offset_search`)
+*   **Quick smoke test (no external data):**
+    ```bash
+    python main.py --stage 32 --data_choice debug_random --mode train --loss_fun PIT-SI-SNR --num_epochs 1 --batch_size 1 --num_workers 0 --train_subset_ratio 0.02 --source_names S1 S2 --compact_results
+    ```
+
+### Running on Kaggle
+
+You can run this project directly in a Kaggle Notebook:
+
+1. **Clone into** `/kaggle/working` (writable).
+2. **Add datasets** as Kaggle “Datasets” so they appear under `/kaggle/input` (read-only).
+3. **Point the loader to `/kaggle/input`**:
+    - MATLAB synthetic datasets: use `--synthetic_root /kaggle/input/<dataset>/synthetic`
+    - Public datasets (RML2016/RML2018/TorchSig): use `--public_root /kaggle/input/<dataset>`
+
+Example:
+```bash
+cd /kaggle/working/<repo>/IQUMamba1D
+python main.py --mode train --data_choice 8PSK_M --source_names 8PSK 8PSK --synthetic_root /kaggle/input/<dataset>/synthetic
+```
+
+Notes:
+- Kaggle already ships with PyTorch; it’s usually best to **avoid reinstalling `torch`** and only `pip install` missing packages (especially `mamba_ssm` and `dynamic_network_architectures`).
+- All outputs (logs/weights/plots) are written under `IQUMamba1D/results`, which is inside `/kaggle/working` and will be saved with the notebook output.
 ## Citation
 If you find this code useful, please cite our paper:
 

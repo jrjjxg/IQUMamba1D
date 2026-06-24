@@ -1,10 +1,20 @@
-function GEN_8PSK_MultiSource()
+function Burst_8PSK(num_files, impaired_flag, variant_suffix)
+    if nargin < 1 || isempty(num_files)
+        num_files = 10; % paper setting: 10 files per SNR
+    end
+    if nargin < 2 || isempty(impaired_flag)
+        impaired_flag = false;
+    end
+    if nargin < 3
+        variant_suffix = '';
+    end
+
     for snr = -10:4:30
-        GEN_8PSK_MultiSource_i(2, snr, 10)
+        Burst_8PSK_i(2, snr, num_files, impaired_flag, variant_suffix)
     end
 end
 
-function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
+function Burst_8PSK_i(num_sources, snr, num_files, impaired_flag, variant_suffix)
     % Multi-source 8PSK signal generation function
     % num_sources: number of sources (2, 3, or 4)
     % snr: signal-to-noise ratio (dB)
@@ -16,6 +26,15 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
     end
     if nargin < 2
         snr = 25;  % default: 25 dB
+    end
+    if nargin < 3
+        num_files = 10; % Default: 10 files per SNR (paper setting)
+    end
+    if nargin < 4
+        impaired_flag = false;
+    end
+    if nargin < 5
+        variant_suffix = '';
     end
 
     if ~ismember(num_sources, [2, 3, 4])
@@ -36,7 +55,7 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
     fprintf('\n');
 
     %% ========== New: Impairment parameters ==========
-    impaired = false;  % set to true to enable realistic impairments
+    impaired = logical(impaired_flag);  % set to true to enable realistic impairments
 
     % 1. Carrier frequency drift parameters
     enable_carrier_drift = impaired;
@@ -512,19 +531,35 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
                     signal_frames, silence_frames);
         end
 
-        %% Save datasets
-        save_path_mixed = sprintf('./%dSource_8PSK_Dataset_mixed_%d_SNR=%ddB.mat', ...
-                                num_sources, file_idx, snr);
-        save_path_target = sprintf('./%dSource_8PSK_Dataset_target_%d_SNR=%ddB.mat', ...
-                                 num_sources, file_idx, snr);
+        %% Save datasets (project-relative, matching IQUMamba1D dataloader patterns)
+        script_dir = fileparts(mfilename('fullpath'));
+        project_dir = fullfile(script_dir, '..');
+        base_name = '8PSK_Burst';
+        if ~isempty(variant_suffix)
+            dataset_name = sprintf('%s_%s', base_name, variant_suffix);
+        else
+            dataset_name = base_name;
+        end
+        synthetic_root = fullfile(project_dir, 'data', 'synthetic', dataset_name);
+        mix_dir = fullfile(synthetic_root, 'mixture');
+        tgt_dir = fullfile(synthetic_root, 'target');
+        bits_dir = fullfile(synthetic_root, 'bits');
+        if ~exist(mix_dir, 'dir'); mkdir(mix_dir); end
+        if ~exist(tgt_dir, 'dir'); mkdir(tgt_dir); end
+        if ~exist(bits_dir, 'dir'); mkdir(bits_dir); end
+
+        save_path_mixed = fullfile(mix_dir, sprintf('%dSource_8PSK_Dataset_mixed_%d_SNR=%ddB.mat', ...
+                                num_sources, file_idx, snr));
+        save_path_target = fullfile(tgt_dir, sprintf('%dSource_8PSK_Dataset_target_%d_SNR=%ddB.mat', ...
+                                 num_sources, file_idx, snr));
 
         save(save_path_mixed, 'mixed_frames', '-v7.3');
         save(save_path_target, 'ideal_frames', '-v7.3');
 
         % Save bit sequences
         for src_idx = 1:num_sources
-            save_path_bit = sprintf('./%dSource_8PSK_BitData_%d_SNR=%ddB_Source%d.mat', ...
-                                  num_sources, file_idx, snr, src_idx);
+            save_path_bit = fullfile(bits_dir, sprintf('%dSource_8PSK_BitData_%d_SNR=%ddB_Source%d.mat', ...
+                                  num_sources, file_idx, snr, src_idx));
             file_bits = bit_data_all{src_idx};
             save(save_path_bit, 'file_bits', '-v7.3');
         end

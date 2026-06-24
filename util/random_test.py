@@ -35,7 +35,7 @@ def combine_experiment_results(csv_files, output_file='combined_results.csv'):
     combined_df = pd.concat(all_data, ignore_index=True)
     
     # 按SNR分组计算统计量
-    metrics = ['Loss', 'Correlation', 'SI-SDR', 'SI-SIR', 'SI-SAR']
+    metrics = ['Loss', 'Correlation', 'SI-SNR_real', 'SI-SNR_complex', 'MSE', 'SC', 'Pearson']
     
     # 计算均值和标准差
     stats_mean = combined_df.groupby('SNR')[metrics].mean()
@@ -70,7 +70,7 @@ def display_summary_table(result_df):
     print("格式: 均值 ± 标准差 [95%置信区间]")
     print("-" * 80)
     
-    metrics = ['Loss', 'Correlation', 'SI-SDR', 'SI-SIR', 'SI-SAR']
+    metrics = ['Loss', 'Correlation', 'SI-SNR_real', 'SI-SNR_complex', 'MSE', 'SC', 'Pearson']
     
     for _, row in result_df.iterrows():
         print(f"\nSNR = {row['SNR']:.1f} dB:")
@@ -87,7 +87,7 @@ def plot_results(result_df, save_plots=True):
     """
     import matplotlib.pyplot as plt
     
-    metrics = ['Loss', 'Correlation', 'SI-SDR', 'SI-SIR', 'SI-SAR']
+    metrics = ['Loss', 'Correlation', 'SI-SNR_real', 'SI-SNR_complex', 'MSE', 'SC', 'Pearson']
     
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     axes = axes.flatten()

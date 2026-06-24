@@ -1,11 +1,20 @@
-function GEN_QPSK_16APSK_DualSource()
+function GEN_QPSK_16APSK_DualSource(num_files, impaired_flag, variant_suffix)
     % Generate QPSK+16APSK dual-source dataset with different SNR
+    if nargin < 1 || isempty(num_files)
+        num_files = 10; % paper setting: 10 files per SNR
+    end
+    if nargin < 2 || isempty(impaired_flag)
+        impaired_flag = false;
+    end
+    if nargin < 3
+        variant_suffix = '';
+    end
     for snr = -10:4:30
-        GEN_QPSK_16APSK_DualSource_i(snr, 20)
+        GEN_QPSK_16APSK_DualSource_i(snr, num_files, impaired_flag, variant_suffix)
     end
 end
 
-function GEN_QPSK_16APSK_DualSource_i(snr, num_files)
+function GEN_QPSK_16APSK_DualSource_i(snr, num_files, impaired_flag, variant_suffix)
     % QPSK+16APSK dual-source signal generation function
     % snr: Signal-to-noise ratio (dB)
     % num_files: Number of files
@@ -15,11 +24,17 @@ function GEN_QPSK_16APSK_DualSource_i(snr, num_files)
         snr = 25;  % Default 25dB
     end
     if nargin < 2
-        num_files = 20;  % Default 20 files
+        num_files = 10;  % Default: 10 files per SNR (paper setting)
+    end
+    if nargin < 3
+        impaired_flag = false;
+    end
+    if nargin < 4
+        variant_suffix = '';
     end
     
     %% ========== Added: Non-ideal characteristics parameters ==========
-    impaired = false;  % Set to true to enable non-ideal characteristics
+    impaired = logical(impaired_flag);  % Set to true to enable non-ideal characteristics
     % 1. Carrier frequency drift parameters
     enable_carrier_drift = impaired;
     carrier_drift_rate = 50;            % Hz/s, carrier frequency drift rate (linear drift)
@@ -380,20 +395,36 @@ function GEN_QPSK_16APSK_DualSource_i(snr, num_files)
             end
         end
         
-        %% Save data
-        save_path_mixed = sprintf('./QPSK_16APSK_Dataset_mixed_%d_SNR=%ddB.mat', ...
-                                file_idx, snr);
-        save_path_target = sprintf('./QPSK_16APSK_Dataset_target_%d_SNR=%ddB.mat', ...
-                                 file_idx, snr);
+        %% Save data (project-relative, matching IQUMamba1D dataloader patterns)
+        script_dir = fileparts(mfilename('fullpath'));
+        project_dir = fullfile(script_dir, '..');
+        base_name = 'QPSK_16APSK';
+        if ~isempty(variant_suffix)
+            dataset_name = sprintf('%s_%s', base_name, variant_suffix);
+        else
+            dataset_name = base_name;
+        end
+        synthetic_root = fullfile(project_dir, 'data', 'synthetic', dataset_name);
+        mix_dir = fullfile(synthetic_root, 'mixture');
+        tgt_dir = fullfile(synthetic_root, 'target');
+        bits_dir = fullfile(synthetic_root, 'bits');
+        if ~exist(mix_dir, 'dir'); mkdir(mix_dir); end
+        if ~exist(tgt_dir, 'dir'); mkdir(tgt_dir); end
+        if ~exist(bits_dir, 'dir'); mkdir(bits_dir); end
+
+        save_path_mixed = fullfile(mix_dir, sprintf('QPSK_16APSK_Dataset_mixed_%d_SNR=%ddB.mat', ...
+                                file_idx, snr));
+        save_path_target = fullfile(tgt_dir, sprintf('QPSK_16APSK_Dataset_target_%d_SNR=%ddB.mat', ...
+                                 file_idx, snr));
         
         save(save_path_mixed, 'mixed_frames', '-v7.3');
         save(save_path_target, 'ideal_frames', '-v7.3');
         
         % Save bit data for both sources separately
-        save_path_bit_QPSK = sprintf('./QPSK_BitData_%d_SNR=%ddB_Source1.mat', ...
-                                    file_idx, snr);
-        save_path_bit_16APSK = sprintf('./16APSK_BitData_%d_SNR=%ddB_Source2.mat', ...
-                                      file_idx, snr);
+        save_path_bit_QPSK = fullfile(bits_dir, sprintf('QPSK_BitData_%d_SNR=%ddB_Source1.mat', ...
+                                    file_idx, snr));
+        save_path_bit_16APSK = fullfile(bits_dir, sprintf('16APSK_BitData_%d_SNR=%ddB_Source2.mat', ...
+                                      file_idx, snr));
         
         save(save_path_bit_QPSK, 'bit_data_QPSK', '-v7.3');
         save(save_path_bit_16APSK, 'bit_data_16APSK', '-v7.3');

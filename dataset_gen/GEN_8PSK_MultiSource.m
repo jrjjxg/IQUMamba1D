@@ -1,19 +1,54 @@
-function GEN_8PSK_MultiSource()
-    for snr = -10:4:30
-        GEN_8PSK_MultiSource_i(2, snr, 1)
+function GEN_8PSK_MultiSource(varargin)
+%GEN_8PSK_MultiSource  Generate strict Table(a) 8PSK-A/B dataset (Ideal AWGN).
+%
+% Default behavior:
+%   cd('E:\MT-RF\IQUMamba1D\dataset_gen');
+%   GEN_8PSK_MultiSource();              % 10 files per SNR, SNR=-10:4:30
+%   GEN_8PSK_MultiSource(10);            % set files per SNR
+%   GEN_8PSK_MultiSource(10, -10:4:30);  % set files and SNR list
+%   GEN_8PSK_MultiSource(10, -10:4:30, 'bb'); % SNR defined on saved baseband frames (default)
+%   GEN_8PSK_MultiSource(10, -10:4:30, 'rf'); % SNR defined on r(t) before downconvert/LPF
+%   GEN_8PSK_MultiSource('8PSK-B');      % Table(a) 8PSK-B, 10 files per SNR
+%   GEN_8PSK_MultiSource('8PSK-B', 10);  % Table(a) 8PSK-B, set files per SNR
+%
+% Legacy behavior:
+%   GEN_8PSK_MultiSource('legacy');      % uses the original defaults
+
+    if nargin >= 1 && ischar(varargin{1}) && strcmpi(varargin{1}, 'legacy')
+        for snr = -10:4:30
+            GEN_8PSK_MultiSource_i(2, snr, 1);
+        end
+        return;
     end
 
-    % for snr = -10:4:30
-    %     GEN_8PSK_MultiSource_i(3, snr, 20)
-    % end
+    dataset_name = '8PSK-A';
+    arg_offset = 0;
+    if nargin >= 1 && (ischar(varargin{1}) || isstring(varargin{1}))
+        dataset_name = char(varargin{1});
+        arg_offset = 1;
+    end
+    dataset_name = normalize_tablea_8psk_dataset(dataset_name);
 
-    % for snr = -10:4:30
-    %     GEN_8PSK_MultiSource_i(3, snr, 20)
-    % end
-        
+    num_files = 10;
+    snr_list = -10:4:30;
+    snr_domain = 'bb';
+    if nargin >= arg_offset + 1 && ~isempty(varargin{arg_offset + 1})
+        num_files = varargin{arg_offset + 1};
+    end
+    if nargin >= arg_offset + 2 && ~isempty(varargin{arg_offset + 2})
+        snr_list = varargin{arg_offset + 2};
+    end
+    if nargin >= arg_offset + 3 && ~isempty(varargin{arg_offset + 3})
+        snr_domain = varargin{arg_offset + 3};
+    end
+    snr_domain = normalize_snr_domain(snr_domain);
+
+    for snr = snr_list
+        GEN_8PSK_MultiSource_i(2, snr, num_files, false, [], dataset_name, true, snr_domain);
+    end
 end
 
-function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
+function GEN_8PSK_MultiSource_i(num_sources, snr, num_files, impaired, output_root, dataset_name, strict_tablea_8psk_a, snr_domain)
     % Multi-source 8PSK signal generation function
     % num_sources: Number of sources (2, 3, 4)
     % snr: Signal-to-noise ratio (dB)
@@ -26,13 +61,36 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
     if nargin < 2
         snr = 25;  % Default 25dB
     end
+    if nargin < 3
+        num_files = 10; % Default: 10 files per SNR (paper setting)
+    end
+    if nargin < 4
+        impaired = true; % Default: enable non-ideal characteristics
+    end
+    if nargin < 6 || isempty(dataset_name)
+        dataset_name = '8PSK';
+    end
+    if nargin < 7 || isempty(strict_tablea_8psk_a)
+        strict_tablea_8psk_a = false;
+    end
+    if nargin < 8 || isempty(snr_domain)
+        snr_domain = 'bb';
+    end
+    snr_domain = normalize_snr_domain(snr_domain);
+
+    dataset_case = upper(strtrim(dataset_name));
+    if strict_tablea_8psk_a
+        dataset_case = normalize_tablea_8psk_dataset(dataset_case);
+        dataset_name = dataset_case;
+        num_sources = 2;
+        impaired = false;
+    end
     
     if ~ismember(num_sources, [2, 3, 4])
         error('Number of sources must be 2, 3, or 4');
     end
     
     %% ========== Added: Non-ideal characteristics parameters ==========
-    impaired = true;  % Set to true to enable non-ideal characteristics
     % 1. Carrier frequency drift parameters
     enable_carrier_drift = impaired;
     carrier_drift_rate = 50;            % Hz/s, carrier frequency drift rate (linear drift)
@@ -55,50 +113,84 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
     amplitude_fade_depth = 0.1;         % Slow fading depth (10%)
     amplitude_fade_rate = 0.5;          % Slow fading rate (Hz)
     
-    fprintf('=== Non-ideal characteristics configuration ===\n');
-    fprintf('1. Carrier frequency drift:\n');
-    fprintf('   - Drift rate: %d Hz/s\n', carrier_drift_rate);
-    fprintf('   - Random walk: std=%d Hz\n', carrier_drift_random_walk_std);
-    fprintf('   - FM amplitude: %d Hz @ %d Hz\n', carrier_fm_amplitude, carrier_fm_frequency);
-    fprintf('2. Symbol clock jitter:\n');
-    fprintf('   - RMS jitter: %.2f%% symbol period\n', timing_jitter_rms*100);
-    fprintf('3. Amplitude variation:\n');
-    fprintf('   - Fast variation: std=%.1f%%, BW=%d Hz\n', amplitude_variation_std*100, amplitude_variation_bandwidth);
-    fprintf('   - Slow fading: depth=%.1f%%, rate=%.2f Hz\n', amplitude_fade_depth*100, amplitude_fade_rate);
-    fprintf('\n');
+    if impaired
+        fprintf('=== Non-ideal characteristics configuration ===\n');
+        fprintf('1. Carrier frequency drift:\n');
+        fprintf('   - Drift rate: %d Hz/s\n', carrier_drift_rate);
+        fprintf('   - Random walk: std=%d Hz\n', carrier_drift_random_walk_std);
+        fprintf('   - FM amplitude: %d Hz @ %d Hz\n', carrier_fm_amplitude, carrier_fm_frequency);
+        fprintf('2. Symbol clock jitter:\n');
+        fprintf('   - RMS jitter: %.2f%% symbol period\n', timing_jitter_rms*100);
+        fprintf('3. Amplitude variation:\n');
+        fprintf('   - Fast variation: std=%.1f%%, BW=%d Hz\n', amplitude_variation_std*100, amplitude_variation_bandwidth);
+        fprintf('   - Slow fading: depth=%.1f%%, rate=%.2f Hz\n', amplitude_fade_depth*100, amplitude_fade_rate);
+        fprintf('\n');
+    end
     
     %% Basic parameters
     flo = 20e6;                 % Local oscillator frequency
     Fs_rf = 100e6;              % Sampling rate
+    if strict_tablea_8psk_a && strcmp(dataset_case, '8PSK-B')
+        flo = 10.000125e6;
+        Fs_rf = 50e6;
+    end
     
     %% Root-raised cosine filter
-    Fs_sps = 20;                % Samples per symbol
     alpha = 0.35;               % Roll-off factor
     span = 20;                   % Filter symbol span
-    filterCoeffs = rcosdesign(alpha, span, Fs_sps, 'sqrt');
+    if strict_tablea_8psk_a && strcmp(dataset_case, '8PSK-B')
+        symbol_rates = [2.5e6, 5e6];
+        Fs_sps_by_source = [20, 10];
+    else
+        symbol_rates = 5e6 * ones(1, num_sources);
+        Fs_sps_by_source = 20 * ones(1, num_sources);
+    end
+    Fs_sps = Fs_sps_by_source;  % Saved as metadata; scalar only when every source is identical.
+    filterCoeffs = cell(num_sources, 1);
+    for i = 1:num_sources
+        filterCoeffs{i} = rcosdesign(alpha, span, Fs_sps_by_source(i), 'sqrt');
+    end
     
     %% Dataset parameters
     %num_files = 20;              % Number of files
     samples_per_file = 500;     % Number of frames per file
-    frame_length = 4096;        % Number of points per frame
-    symbols_per_frame = 205;    % Number of symbols per frame
+    frame_length = 4096;        % Restore original 8PSK-A frame length for separation experiments
+    valid_frame_length = frame_length;
     bits_per_symbol = 3;        % Number of bits per symbol
     total_frames = samples_per_file;
     total_samples = total_frames * frame_length;  % Total sampling points per file
-    total_symbols = total_frames * symbols_per_frame; % Total symbols per file
+    symbols_per_frame_by_source = round(frame_length ./ Fs_sps_by_source);
+    total_symbols_by_source = total_frames .* symbols_per_frame_by_source;
+    bits_per_frame_by_source = symbols_per_frame_by_source * bits_per_symbol;
+    if all(symbols_per_frame_by_source == symbols_per_frame_by_source(1))
+        symbols_per_frame = symbols_per_frame_by_source(1);
+        bits_per_frame = bits_per_frame_by_source(1);
+    else
+        symbols_per_frame = symbols_per_frame_by_source;
+        bits_per_frame = bits_per_frame_by_source;
+    end
     
     %% Delay parameters (reduce delay to avoid affecting BER)
-    symbol_rate = 5e6;          % Symbol rate
-    Tb = 1/symbol_rate;         % Symbol period
-    % Reduce delay to 0.05*Tb to reduce impact on BER
-    base_delay = 0.05 * Tb;
+    if strict_tablea_8psk_a && strcmp(dataset_case, '8PSK-B')
+        Tb = 1/min(symbol_rates);
+        base_delay = 0.3 * Tb;
+    else
+        Tb = 1/symbol_rates(1);
+        base_delay = 0.05 * Tb;
+    end
     delay_samples = round((0:num_sources-1) * base_delay * Fs_rf);
     
     %% Low-pass filter design
     rolloff = 0.35;
-    cutoff_freq = symbol_rate * (1+rolloff)/2;
+    cutoff_freq = max(symbol_rates) * (1+rolloff)/2;
     normalized_cutoff = cutoff_freq/(Fs_rf/2);
-    h_lpf = fir1(127, normalized_cutoff, 'low', kaiser(128, 5));
+    h_lpf_mixed = fir1(127, normalized_cutoff, 'low', kaiser(128, 5));
+    h_lpf_sources = cell(num_sources, 1);
+    for i = 1:num_sources
+        cutoff_freq_i = symbol_rates(i) * (1+rolloff)/2;
+        normalized_cutoff_i = cutoff_freq_i/(Fs_rf/2);
+        h_lpf_sources{i} = fir1(127, normalized_cutoff_i, 'low', kaiser(128, 5));
+    end
     
     %% Constellation mapping table
     constellation = [exp(1j * pi/8);       % dec 0 (000)
@@ -350,7 +442,7 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
         fprintf('Generating file %d/%d\n', file_idx, num_files);
         
         %% Carrier frequency configuration (random frequency offset within ±700Hz for each file)
-        fc_base = 20e6;  % Base carrier frequency 20MHz
+        fc_base = flo;  % Base carrier frequency matches the local oscillator
         
         switch num_sources
             case 2
@@ -369,17 +461,29 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
         end
         
         % Calculate actual carrier frequencies
+        if strict_tablea_8psk_a
+            if strcmp(dataset_case, '8PSK-B')
+                fc_offsets = [-250, +500];
+            else
+                fc_offsets = [-500, +500];
+            end
+        end
         fc_array = fc_base + fc_offsets;
         
         %% ========== Modified: Initial phase for each file is uniformly distributed in 0 to π ==========
         initial_phases = rand(num_sources, 1) * pi;  % Random phase for each source in 0 to π
+        if strict_tablea_8psk_a
+            if strcmp(dataset_case, '8PSK-B')
+                initial_phases = [0; pi/5];
+            else
+                initial_phases = [0; pi/3];
+            end
+        end
         
         % Generate global time axis (continuous time starting from 0)
         t_global = (0:total_samples-1)' / Fs_rf;
         
         %% 1. Generate bit stream and modulation signals (multi-source)
-        total_bits = total_symbols * bits_per_symbol;
-        
         % Store signals for each source
         rf_signals = zeros(length(t_global), num_sources);
         ideal_bb_signals = zeros(length(t_global), num_sources);
@@ -387,17 +491,20 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
         
         for src_idx = 1:num_sources
             %% Generate bit stream
-            bit_data_all{src_idx} = randi([0, 1], total_bits, 1, 'uint8');
+            total_bits_src = total_symbols_by_source(src_idx) * bits_per_symbol;
+            bit_data_all{src_idx} = randi([0, 1], total_bits_src, 1, 'uint8');
             
             %% Modulate to 8PSK symbols
-            symbol_indices = bi2de(reshape(bit_data_all{src_idx}, bits_per_symbol, [])', 'left-msb') + 1;
+            frame_symbol_labels = bi2de(reshape(bit_data_all{src_idx}, bits_per_symbol, [])', 'left-msb');
+
             % Use mapping table to convert to correct constellation index
-            symbol_indices = gray_map_array(symbol_indices);
+            symbol_indices = gray_map_array(frame_symbol_labels + 1);
             s_complex = constellation(symbol_indices);
             
             %% Upsampling and pulse shaping
-            s_upsampled = upsample(s_complex, Fs_sps);
-            s_shaped = conv(s_upsampled, filterCoeffs, 'same');
+            Fs_sps_src = Fs_sps_by_source(src_idx);
+            s_upsampled = upsample(s_complex, Fs_sps_src);
+            s_shaped = conv(s_upsampled, filterCoeffs{src_idx}, 'same');
             
             %% ========== Key modification: Save ideal signal for target ==========
             s_shaped_ideal = s_shaped;
@@ -405,7 +512,7 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
             %% Apply symbol clock jitter
             if enable_timing_jitter
                 num_symbols_total = length(symbol_indices);
-                s_shaped = apply_timing_jitter(s_shaped, jitter_params, num_symbols_total, Fs_sps);
+                s_shaped = apply_timing_jitter(s_shaped, jitter_params, num_symbols_total, Fs_sps_src);
                 % Re-align length
                 if length(s_shaped) > length(t_global)
                     s_shaped = s_shaped(1:length(t_global));
@@ -425,6 +532,7 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
             %% Add delay
             if delay_samples(src_idx) > 0
                 s_shaped = [zeros(delay_samples(src_idx), 1); s_shaped(1:end-delay_samples(src_idx))];
+                s_shaped_ideal = [zeros(delay_samples(src_idx), 1); s_shaped_ideal(1:end-delay_samples(src_idx))];
             end
             
             %% Ensure length consistency
@@ -474,38 +582,79 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
             
             baseband_i = rf_signal_ideal .* cos(2*pi*flo*t_global);
             baseband_q = rf_signal_ideal .* (-sin(2*pi*flo*t_global));
-            bb_i_filtered = conv(baseband_i, h_lpf, 'same');
-            bb_q_filtered = conv(baseband_q, h_lpf, 'same');
+            bb_i_filtered = conv(baseband_i, h_lpf_sources{src_idx}, 'same');
+            bb_q_filtered = conv(baseband_q, h_lpf_sources{src_idx}, 'same');
             ideal_bb_signals(:, src_idx) = complex(bb_i_filtered, bb_q_filtered);
         end
         
-        %% Mix signals and add noise
-        rf_combined = sum(rf_signals, 2);
-        rf_combined_noisy = awgn(rf_combined, snr, 'measured');
-        
-        %% Down-convert to baseband
-        % Generate LO signal
-        lo_i = cos(2*pi*flo*t_global);
-        lo_q = sin(2*pi*flo*t_global);
-        
-        % Mix signal down-convert
-        baseband_i = rf_combined_noisy .* lo_i;
-        baseband_q = rf_combined_noisy .* (-lo_q);
-        bb_i_filtered = conv(baseband_i, h_lpf, 'same');
-        bb_q_filtered = conv(baseband_q, h_lpf, 'same');
-        mixed_baseband = complex(bb_i_filtered, bb_q_filtered);
+        snr_emp_rf = NaN;
+        snr_emp_bb = NaN;
+        if strict_tablea_8psk_a
+            % Strict Table(a) 8PSK-A: fixed params + configurable SNR domain.
+            rf_combined_clean = sum(rf_signals, 2);
+
+            % Downconvert clean mixture to baseband for reference.
+            lo_i = cos(2*pi*flo*t_global);
+            lo_q = sin(2*pi*flo*t_global);
+            baseband_i_clean = rf_combined_clean .* lo_i;
+            baseband_q_clean = rf_combined_clean .* (-lo_q);
+            bb_i_clean = conv(baseband_i_clean, h_lpf_mixed, 'same');
+            bb_q_clean = conv(baseband_q_clean, h_lpf_mixed, 'same');
+            mixed_baseband_clean = complex(bb_i_clean, bb_q_clean);
+
+            if strcmp(snr_domain, 'rf')
+                rf_combined_noisy = awgn(rf_combined_clean, snr, 'measured');
+                snr_emp_rf = empirical_snr_db_rf_pair(rf_combined_clean, rf_combined_noisy);
+
+                baseband_i = rf_combined_noisy .* lo_i;
+                baseband_q = rf_combined_noisy .* (-lo_q);
+                bb_i_filtered = conv(baseband_i, h_lpf_mixed, 'same');
+                bb_q_filtered = conv(baseband_q, h_lpf_mixed, 'same');
+                mixed_baseband = complex(bb_i_filtered, bb_q_filtered);
+            else
+                mixed_baseband = awgn(mixed_baseband_clean, snr, 'measured');
+            end
+
+            snr_emp_bb = empirical_snr_db_bb(mixed_baseband_clean, mixed_baseband);
+        else
+            %% Mix signals and add noise
+            rf_combined = sum(rf_signals, 2);
+            rf_combined_noisy = awgn(rf_combined, snr, 'measured');
+
+            %% Down-convert to baseband
+            % Generate LO signal
+            lo_i = cos(2*pi*flo*t_global);
+            lo_q = sin(2*pi*flo*t_global);
+
+            % Mix signal down-convert
+            baseband_i = rf_combined_noisy .* lo_i;
+            baseband_q = rf_combined_noisy .* (-lo_q);
+            bb_i_filtered = conv(baseband_i, h_lpf_mixed, 'same');
+            bb_q_filtered = conv(baseband_q, h_lpf_mixed, 'same');
+            mixed_baseband = complex(bb_i_filtered, bb_q_filtered);
+        end
         
         %% ========================================================
         %% File-level normalization
         %% ========================================================
         
-        % Calculate file-level maximum amplitude
-        file_max_mixed = max(abs(mixed_baseband));
-        file_max_ideal = max(max(abs(ideal_bb_signals)));
-        
-        % Apply file-level normalization
-        mixed_baseband = mixed_baseband / file_max_mixed;
-        ideal_bb_signals = ideal_bb_signals / file_max_ideal;
+        if strict_tablea_8psk_a
+            % Shared normalization scale for mixture and targets to preserve SNR.
+            scale = sqrt(mean(abs(mixed_baseband).^2));
+            if isempty(scale) || scale < 1e-12
+                scale = 1;
+            end
+            mixed_baseband = mixed_baseband ./ scale;
+            ideal_bb_signals = ideal_bb_signals ./ scale;
+        else
+            % Calculate file-level maximum amplitude
+            file_max_mixed = max(abs(mixed_baseband));
+            file_max_ideal = max(max(abs(ideal_bb_signals)));
+
+            % Apply file-level normalization
+            mixed_baseband = mixed_baseband / file_max_mixed;
+            ideal_bb_signals = ideal_bb_signals / file_max_ideal;
+        end
         
         %% Split long signal into frames and save
         %% ========================================================
@@ -536,21 +685,47 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
             end
         end
         
-        %% Save data
-        save_path_mixed = sprintf('D:/My/SCBSS/2.0/Data_gen/dataset_8192/8PSK/%dSource_8PSK_Dataset_mixed_%d_SNR=%ddB.mat', ...
-                                num_sources, file_idx, snr);
-        save_path_target = sprintf('D:/My/SCBSS/2.0/Data_gen/dataset_8192/8PSK/%dSource_8PSK_Dataset_target_%d_SNR=%ddB.mat', ...
-                                 num_sources, file_idx, snr);
-        
-        save(save_path_mixed, 'mixed_frames', '-v7.3');
-        save(save_path_target, 'ideal_frames', '-v7.3');
-        
+        %% Save data (project-relative by default; matches IQUMamba1D dataloader patterns)
+        if nargin < 5 || isempty(output_root)
+            script_dir = fileparts(mfilename('fullpath'));
+            project_dir = fullfile(script_dir, '..');
+            if strict_tablea_8psk_a
+                output_root = fullfile(project_dir, 'data', 'synthetic', dataset_name);
+            else
+                output_root = fullfile(project_dir, 'data', 'synthetic', '8PSK_M');
+            end
+        end
+        mix_dir = fullfile(output_root, 'mixture');
+        tgt_dir = fullfile(output_root, 'target');
+        bits_dir = fullfile(output_root, 'bits');
+        if ~exist(mix_dir, 'dir'); mkdir(mix_dir); end %#ok<SEPEX>
+        if ~exist(tgt_dir, 'dir'); mkdir(tgt_dir); end %#ok<SEPEX>
+        if ~exist(bits_dir, 'dir'); mkdir(bits_dir); end %#ok<SEPEX>
+
+        save_path_mixed = fullfile(mix_dir, sprintf('%dSource_%s_Dataset_mixed_%d_SNR=%ddB.mat', ...
+            num_sources, dataset_name, file_idx, snr));
+        save_path_target = fullfile(tgt_dir, sprintf('%dSource_%s_Dataset_target_%d_SNR=%ddB.mat', ...
+            num_sources, dataset_name, file_idx, snr));
+
+        rrc_alpha = alpha; %#ok<NASGU>
+        rrc_span = span; %#ok<NASGU>
+        save(save_path_mixed, 'mixed_frames', 'frame_length', 'valid_frame_length', 'symbols_per_frame', ...
+            'Fs_sps', 'bits_per_symbol', 'bits_per_frame', 'rrc_alpha', 'rrc_span', '-v7.3');
+        save(save_path_target, 'ideal_frames', 'frame_length', 'valid_frame_length', 'symbols_per_frame', ...
+            'Fs_sps', 'bits_per_symbol', 'bits_per_frame', 'rrc_alpha', 'rrc_span', '-v7.3');
+
         % Save bit data (each source saved separately)
         for src_idx = 1:num_sources
-            save_path_bit = sprintf('D:/My/SCBSS/2.0/Data_gen/dataset_8192/8PSK/bits/%dSource_8PSK_BitData_%d_SNR=%ddB_Source%d.mat', ...
-                                  num_sources, file_idx, snr, src_idx);
-            file_bits = bit_data_all{src_idx};
-            save(save_path_bit, 'file_bits', '-v7.3');
+            save_path_bit = fullfile(bits_dir, sprintf('%dSource_%s_BitData_%d_SNR=%ddB_Source%d.mat', ...
+                num_sources, dataset_name, file_idx, snr, src_idx));
+            file_bits = bit_data_all{src_idx}; %#ok<NASGU>
+            save(save_path_bit, 'file_bits', 'bits_per_frame', 'bits_per_symbol', ...
+                'symbols_per_frame', 'Fs_sps', 'rrc_alpha', 'rrc_span', '-v7.3');
+        end
+
+        if strict_tablea_8psk_a && file_idx == 1
+            fprintf('  [Empirical SNR] RF=%.2f dB, BB=%.2f dB (target %d dB, domain=%s)\n', ...
+                snr_emp_rf, snr_emp_bb, snr, snr_domain);
         end
         
         fprintf('File %d/%d saved (%d sources)\n', file_idx, num_files, num_sources);
@@ -570,8 +745,83 @@ function GEN_8PSK_MultiSource_i(num_sources, snr, num_files)
     fprintf('\n=== Dataset generation completed ===\n');
     fprintf('Number of sources: %d\n', num_sources);
     fprintf('SNR: %d dB\n', snr);
-    fprintf('Frequency offset range: ±700 Hz\n');
+    if strict_tablea_8psk_a
+        if strcmp(dataset_case, '8PSK-B')
+            fprintf('Frequency offset: [-250, +500] Hz\n');
+            fprintf('Initial phase: [0, pi/5] rad\n');
+            fprintf('Time delay: [0, 0.3Tb]\n');
+            fprintf('Symbol rates: [2.5, 5.0] MHz\n');
+            fprintf('Sampling rate: 50 MHz\n');
+        else
+            fprintf('Frequency offset: [-500, +500] Hz\n');
+            fprintf('Initial phase: [0, pi/3] rad\n');
+            fprintf('Time delay: [0, 0.05Tb]\n');
+        end
+    else
+        fprintf('Frequency offset range: ±700 Hz\n');
+    end
     fprintf('Number of files: %d\n', num_files);
+    fprintf('Symbols per frame: %d\n', symbols_per_frame);
+    fprintf('Bits per frame: %d\n', bits_per_frame);
     
     disp('All files generated');
+end
+
+function snr_db = empirical_snr_db_from_frames(mixed_frames, ideal_frames, num_sources)
+    % mixed_frames: [B, L, 2], ideal_frames: [B, L, 2*num_sources]
+    mf = double(mixed_frames);
+    tf = double(ideal_frames);
+
+    % to (B,2,L) and (B,2K,L)
+    mix = permute(mf, [1, 3, 2]);
+    tgt = permute(tf, [1, 3, 2]);
+
+    sum_s = zeros(size(mix));
+    for k = 1:num_sources
+        ch = (2*k-1):(2*k);
+        sum_s = sum_s + tgt(:, ch, :);
+    end
+
+    noise = mix - sum_s;
+
+    p_sig = mean(sum(sum_s.^2, 2), 'all');
+    p_noi = mean(sum(noise.^2, 2), 'all') + 1e-12;
+
+    snr_db = 10 * log10(p_sig / p_noi);
+end
+
+function snr_domain = normalize_snr_domain(snr_domain)
+    if isstring(snr_domain); snr_domain = char(snr_domain); end
+    if ~ischar(snr_domain)
+        error('snr_domain must be ''rf'' or ''bb''.');
+    end
+    snr_domain = lower(strtrim(snr_domain));
+    if ~ismember(snr_domain, {'rf','bb'})
+        error('snr_domain must be ''rf'' or ''bb''.');
+    end
+end
+
+function dataset_name = normalize_tablea_8psk_dataset(dataset_name)
+    if isstring(dataset_name); dataset_name = char(dataset_name); end
+    if ~ischar(dataset_name)
+        error('dataset_name must be ''8PSK-A'' or ''8PSK-B''.');
+    end
+    dataset_name = upper(strtrim(dataset_name));
+    if ~ismember(dataset_name, {'8PSK-A', '8PSK-B'})
+        error('Supported strict Table(a) 8PSK datasets are ''8PSK-A'' and ''8PSK-B''.');
+    end
+end
+
+function snr_emp_rf = empirical_snr_db_rf_pair(rf_clean, rf_noisy)
+    noise = rf_noisy - rf_clean;
+    p_sig = mean(rf_clean.^2);
+    p_noi = mean(noise.^2) + 1e-12;
+    snr_emp_rf = 10 * log10(p_sig / p_noi);
+end
+
+function snr_emp_bb = empirical_snr_db_bb(bb_clean, bb_noisy)
+    noise = bb_noisy - bb_clean;
+    p_sig = mean(abs(bb_clean).^2);
+    p_noi = mean(abs(noise).^2) + 1e-12;
+    snr_emp_bb = 10 * log10(p_sig / p_noi);
 end

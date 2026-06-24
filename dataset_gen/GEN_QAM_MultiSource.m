@@ -1,13 +1,24 @@
-function GEN_QAM_MultiSource()
-    % Generate multi-source QAM dataset with different SNR
-    for snr = 10:4:30
-        % Dual-source dataset
-        %GEN_QAM_DualSource_i(snr, 20, '16QAM', '64QAM');
-        %GEN_QAM_DualSource_i(snr, 10, '64QAM', '64QAM');
-        %GEN_QAM_DualSource_i(snr, 10, '64QAM', '128QAM');
-        
-        % % Tri-source dataset
-        GEN_QAM_TriSource_i(snr, 1, '16QAM', '64QAM', '128QAM');
+function GEN_QAM_MultiSource(num_files)
+    % One-click entry for generating QAM datasets in Table-1 style.
+    % Generates 5 datasets across SNR=2:4:30 (8 levels), each with num_files per SNR.
+    %
+    % Output folders (under IQUMamba1D/data/synthetic):
+    %   16QAM_64QAM
+    %   64QAM_64QAM
+    %   64QAM_128QAM
+    %   16QAM_128QAM
+    %   16QAM_64QAM_128QAM
+
+    if nargin < 1 || isempty(num_files)
+        num_files = 10; % paper setting: 10 files per SNR
+    end
+
+    for snr = 2:4:30
+        GEN_QAM_DualSource_i(snr, num_files, '16QAM', '64QAM');
+        GEN_QAM_DualSource_i(snr, num_files, '64QAM', '64QAM');
+        GEN_QAM_DualSource_i(snr, num_files, '64QAM', '128QAM');
+        GEN_QAM_DualSource_i(snr, num_files, '16QAM', '128QAM');
+        GEN_QAM_TriSource_i(snr, num_files, '16QAM', '64QAM', '128QAM');
     end
 end
 
@@ -22,7 +33,7 @@ function GEN_QAM_DualSource_i(snr, num_files, mod1_type, mod2_type)
         snr = 25;
     end
     if nargin < 2
-        num_files = 20;
+        num_files = 10; % Default: 10 files per SNR (paper setting)
     end
     
     %% Carrier frequency configuration (normalized frequency offset 2.5e-5)
@@ -185,7 +196,7 @@ function GEN_QAM_TriSource_i(snr, num_files, mod1_type, mod2_type, mod3_type)
         snr = 25;
     end
     if nargin < 2
-        num_files = 20;
+        num_files = 10; % Default: 10 files per SNR (paper setting)
     end
     
     %% Carrier frequency configuration (symmetric distribution)
@@ -392,20 +403,31 @@ function save_dual_source_data(mixed_baseband, ideal_bb_signals, bit_data_1, bit
             end
         end
         
-        % Save data
-        save_path_mixed = sprintf('./%s_%s_Dataset_mixed_%d_SNR=%ddB.mat', ...
-                                mod1_type, mod2_type, file_idx, snr);
-        save_path_target = sprintf('./%s_%s_Dataset_target_%d_SNR=%ddB.mat', ...
-                                 mod1_type, mod2_type, file_idx, snr);
+        % Save data (project-relative, matching IQUMamba1D dataloader patterns)
+        script_dir = fileparts(mfilename('fullpath'));
+        project_dir = fullfile(script_dir, '..');
+        dataset_name = sprintf('%s_%s', mod1_type, mod2_type);
+        synthetic_root = fullfile(project_dir, 'data', 'synthetic', dataset_name);
+        mix_dir = fullfile(synthetic_root, 'mixture');
+        tgt_dir = fullfile(synthetic_root, 'target');
+        bits_dir = fullfile(synthetic_root, 'bits');
+        if ~exist(mix_dir, 'dir'); mkdir(mix_dir); end
+        if ~exist(tgt_dir, 'dir'); mkdir(tgt_dir); end
+        if ~exist(bits_dir, 'dir'); mkdir(bits_dir); end
+
+        save_path_mixed = fullfile(mix_dir, sprintf('%s_Dataset_mixed_%d_SNR=%ddB.mat', ...
+                                dataset_name, file_idx, snr));
+        save_path_target = fullfile(tgt_dir, sprintf('%s_Dataset_target_%d_SNR=%ddB.mat', ...
+                                 dataset_name, file_idx, snr));
         
         save(save_path_mixed, 'mixed_frames', '-v7.3');
         save(save_path_target, 'ideal_frames', '-v7.3');
         
         % Save bit data
-        save_path_bit_1 = sprintf('./%s_BitData_%d_SNR=%ddB_Source1.mat', ...
-                                mod1_type, file_idx, snr);
-        save_path_bit_2 = sprintf('./%s_BitData_%d_SNR=%ddB_Source2.mat', ...
-                                mod2_type, file_idx, snr);
+        save_path_bit_1 = fullfile(bits_dir, sprintf('%s_BitData_%d_SNR=%ddB_Source1.mat', ...
+                                mod1_type, file_idx, snr));
+        save_path_bit_2 = fullfile(bits_dir, sprintf('%s_BitData_%d_SNR=%ddB_Source2.mat', ...
+                                mod2_type, file_idx, snr));
         
         save(save_path_bit_1, 'file_bits_1', '-v7.3');
         save(save_path_bit_2, 'file_bits_2', '-v7.3');
@@ -464,22 +486,33 @@ function save_tri_source_data(mixed_baseband, ideal_bb_signals, bit_data_1, bit_
             end
         end
         
-        % Save data
-        save_path_mixed = sprintf('./%s_%s_%s_Dataset_mixed_%d_SNR=%ddB.mat', ...
-                                mod1_type, mod2_type, mod3_type, file_idx, snr);
-        save_path_target = sprintf('./%s_%s_%s_Dataset_target_%d_SNR=%ddB.mat', ...
-                                 mod1_type, mod2_type, mod3_type, file_idx, snr);
+        % Save data (project-relative, matching IQUMamba1D dataloader patterns)
+        script_dir = fileparts(mfilename('fullpath'));
+        project_dir = fullfile(script_dir, '..');
+        dataset_name = sprintf('%s_%s_%s', mod1_type, mod2_type, mod3_type);
+        synthetic_root = fullfile(project_dir, 'data', 'synthetic', dataset_name);
+        mix_dir = fullfile(synthetic_root, 'mixture');
+        tgt_dir = fullfile(synthetic_root, 'target');
+        bits_dir = fullfile(synthetic_root, 'bits');
+        if ~exist(mix_dir, 'dir'); mkdir(mix_dir); end
+        if ~exist(tgt_dir, 'dir'); mkdir(tgt_dir); end
+        if ~exist(bits_dir, 'dir'); mkdir(bits_dir); end
+
+        save_path_mixed = fullfile(mix_dir, sprintf('%s_Dataset_mixed_%d_SNR=%ddB.mat', ...
+                                dataset_name, file_idx, snr));
+        save_path_target = fullfile(tgt_dir, sprintf('%s_Dataset_target_%d_SNR=%ddB.mat', ...
+                                 dataset_name, file_idx, snr));
         
         save(save_path_mixed, 'mixed_frames', '-v7.3');
         save(save_path_target, 'ideal_frames', '-v7.3');
         
         % Save bit data
-        save_path_bit_1 = sprintf('./%s_BitData_%d_SNR=%ddB_Source1.mat', ...
-                                mod1_type, file_idx, snr);
-        save_path_bit_2 = sprintf('./%s_BitData_%d_SNR=%ddB_Source2.mat', ...
-                                mod2_type, file_idx, snr);
-        save_path_bit_3 = sprintf('./%s_BitData_%d_SNR=%ddB_Source3.mat', ...
-                                mod3_type, file_idx, snr);
+        save_path_bit_1 = fullfile(bits_dir, sprintf('%s_BitData_%d_SNR=%ddB_Source1.mat', ...
+                                mod1_type, file_idx, snr));
+        save_path_bit_2 = fullfile(bits_dir, sprintf('%s_BitData_%d_SNR=%ddB_Source2.mat', ...
+                                mod2_type, file_idx, snr));
+        save_path_bit_3 = fullfile(bits_dir, sprintf('%s_BitData_%d_SNR=%ddB_Source3.mat', ...
+                                mod3_type, file_idx, snr));
         
         save(save_path_bit_1, 'file_bits_1', '-v7.3');
         save(save_path_bit_2, 'file_bits_2', '-v7.3');

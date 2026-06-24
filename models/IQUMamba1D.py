@@ -12,6 +12,11 @@ from dynamic_network_architectures.building_blocks.helper import maybe_convert_s
 from torch.amp import autocast
 from dynamic_network_architectures.building_blocks.residual import BasicBlockD
 
+if hasattr(torch, "bfloat16"):
+    HALF_PRECISION_DTYPES = (torch.float16, torch.bfloat16)
+else:
+    HALF_PRECISION_DTYPES = (torch.float16,)
+
 class UpsampleLayer(nn.Module):
     def __init__(
             self,
@@ -66,8 +71,8 @@ class MambaLayer(nn.Module):
 
     @autocast('cuda', enabled=False)
     def forward(self, x):
-        if x.dtype == torch.float16:
-            x = x.type(torch.float32)
+        if x.dtype in HALF_PRECISION_DTYPES:
+            x = x.float()
         
         if self.channel_token:
             out = self.forward_channel_token(x)
@@ -174,11 +179,12 @@ class AdaptiveFusion1D(nn.Module):
         super().__init__()
 
         self.global_pool = nn.AdaptiveAvgPool1d(1)
+        hidden_channels = max(1, skip_channels // 4)
 
         self.weight_generator = nn.Sequential(
-            conv_op(upsampled_channels, skip_channels // 4, 1),
+            conv_op(upsampled_channels, hidden_channels, 1),
             nonlin(**nonlin_kwargs),
-            conv_op(skip_channels // 4, skip_channels, 1),
+            conv_op(hidden_channels, skip_channels, 1),
             nn.Sigmoid()
         )
 
@@ -290,7 +296,7 @@ class ResidualMambaEncoder(nn.Module):
 
         self.conv_pad_sizes = [[k//2 for k in ks] for ks in kernel_sizes]
 
-        stem_channels = features_per_stage[0]
+        stem_channels = features_per_stage[0] if stem_channels is None else int(stem_channels)
         self.stem = nn.Sequential(
             BasicResBlock(
                 conv_op = conv_op,
@@ -433,7 +439,7 @@ class UNetResDecoder(nn.Module):
                     norm_op_kwargs=encoder.norm_op_kwargs,
                     nonlin=encoder.nonlin,
                     nonlin_kwargs=encoder.nonlin_kwargs,
-                    input_channels=2 * input_features_skip if s < n_stages_encoder - 1 else input_features_skip,
+                    input_channels=2 * input_features_skip,
                     output_channels=input_features_skip,
                     kernel_size=encoder.kernel_sizes[-(s + 1)][0],
                     padding=encoder.conv_pad_sizes[-(s + 1)][0],
@@ -465,9 +471,8 @@ class UNetResDecoder(nn.Module):
         seg_outputs = []
         for s in range(len(self.stages)):
             x = self.upsample_layers[s](lres_input)
-            if s < (len(self.stages) - 1):
-                processed_skip = self.skip_processors[s](skips[-(s+2)], x)
-                x = torch.cat((x, processed_skip), 1)
+            processed_skip = self.skip_processors[s](skips[-(s+2)], x)
+            x = torch.cat((x, processed_skip), 1)
             x = self.stages[s](x)
             seg_outputs.append(self.seg_layers[s](x))
             lres_input = x
