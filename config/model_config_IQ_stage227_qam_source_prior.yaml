@@ -1,0 +1,34 @@
+# Stage 227: Stage-4 IQUMamba + source-wise QAM geometry refinement.
+#
+# The separator first produces coarse source estimates.  The QAM prior is
+# applied independently to each estimate, with a null branch, soft 16/64/128
+# QAM geometry routing, a confidence gate, and a bounded near-identity update.
+model_config:
+  model_type: iqumamba_qam_source_prior
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # 4 -> 16QAM, 8 -> 64QAM; cross-128 is handled by a dedicated geometry.
+  qam_source_axis_level_bank: [4, 8]
+  qam_source_include_cross_128: true
+  qam_source_phase_bank: [-0.3926990817, -0.1963495408, 0.0, 0.1963495408, 0.3926990817, 0.7853981634]
+  qam_source_projection_temperature: 24.0
+  qam_source_route_temperature: 10.0
+  qam_source_null_bias: 0.0
+  qam_source_reliability_floor: 0.05
+
+  qam_source_hidden_channels: 16
+  qam_source_kernel_size: 9
+  qam_source_max_scale: 0.15
+  # Exact Stage-4 behavior at initialization; the scale learns whether the
+  # source-wise QAM correction is useful for the current dataset.
+  qam_source_scale_init: 0.0
+  qam_source_max_refine: 0.10

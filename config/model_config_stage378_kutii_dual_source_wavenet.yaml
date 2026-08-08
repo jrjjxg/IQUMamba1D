@@ -1,0 +1,14 @@
+# Stage 378: KU-TII-style learnable-dilation WaveNet adapted to blind BSS.
+# The trunk is shared across all source slots; main.py sets num_classes to
+# 2 * num_sources at runtime and packs outputs as [S1_I,S1_Q,S2_I,S2_Q,...].
+# Unlike the RF-Challenge single-SOI config, this model has no case/SOI input.
+model_config:
+  model_type: kutii_dual_source_wavenet
+  input_channels: 2
+  num_classes: 4
+
+  # Public KU-TII design points.
+  residual_channels: 256
+  residual_layers: 30
+  dilation_cycle_length: 10
+  max_dilation: 1024

@@ -1,0 +1,24 @@
+# Stage 307: original Stage-4 separator with a phase-coherent sparse long-range input operator.
+# Remote IQ samples are selected in estimated symbol coordinates and phase-transported
+# before aggregation. The 0.01 residual initialization keeps the initial path near Stage 4.
+model_config:
+  model_type: iqumamba_symbol_delay_doppler_rf
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  rf_sps_candidates: [8, 10, 16, 20, 32, 40]
+  rf_symbol_spans: [1, 2, 4, 8, 16, 32, 64]
+  rf_default_sps: 20.0
+  rf_sps_temperature: 0.25
+  rf_max_phase_step: 0.25
+  rf_max_doppler_offset: 0.05
+  rf_gate_hidden: 24
+  rf_residual_scale_init: 0.01
+  rf_eps: 1.0e-6

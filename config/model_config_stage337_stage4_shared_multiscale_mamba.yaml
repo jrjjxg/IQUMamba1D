@@ -1,0 +1,16 @@
+# Stage 337: multi-scale context control, shared by delta/B/C.
+model_config:
+  model_type: iqumamba_stage4_role_rf
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  role_rf_variant: shared
+  role_rf_context_kernels: [3, 15, 63]
+  role_rf_d_state: 16
+  role_rf_expand: 2

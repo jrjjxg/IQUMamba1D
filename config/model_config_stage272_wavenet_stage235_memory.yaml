@@ -1,0 +1,26 @@
+# Stage 272: replace Stage 261's reconstructed low-rate UniMamba residual
+# with Stage-235-style compressed K/V memory.  The only midpoint Mamba path
+# is a low-rate bidirectional memory branch queried by the WaveNet feature.
+model_config:
+  model_type: icassp_wavenet_interleaved_stage235_memory
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  # Stage-235-style K/V memory: 128 -> 64 -> stride-4 BiMamba tokens.
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+
+  # Full-rate WaveNet midpoint is Query; compressed memory is Key/Value.
+  cross_scale_kv_tokens: 64
+  cross_scale_num_heads: 4
+  cross_scale_dropout: 0.0
+  cross_scale_residual_scale_init: 0.01

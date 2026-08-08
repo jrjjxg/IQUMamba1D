@@ -1,0 +1,30 @@
+# Stage 304: jointly trained convex output fusion of Stages 298 and 299.
+model_config:
+  model_type: stage298_stage299_output_fusion
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  fusion_logit_init: 0.0
+  complex_norm_eps: 1.0e-6
+  mamba_d_state: 8
+  mamba_d_conv: 4
+  mamba_expand: 2
+  scan_backend: auto
+  scan_checkpoint: true
+
+  estimated_cyclofresh_min_freq: 0.015625
+  estimated_cyclofresh_max_freq: 0.125
+  estimated_cyclofresh_default_freq: 0.03125
+  estimated_cyclofresh_momentum: 0.05
+  estimated_cyclofresh_hidden_channels: 8
+  estimated_cyclofresh_kernel_size: 9
+  estimated_cyclofresh_scale_init: 0.01
+  estimated_cyclofresh_gate_hidden: 8
+  estimated_cyclofresh_zero_init: true

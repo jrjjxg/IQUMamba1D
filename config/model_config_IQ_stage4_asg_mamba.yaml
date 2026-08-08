@@ -1,0 +1,26 @@
+# IQUMamba1D Stage 201 - ASGMamba-style local FFT gate on stage-4 Mamba layers.
+model_config:
+
+  model_type: iqumamba_asg_mamba
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # ASG gate:
+  #   feature patch -> local rFFT -> band-energy descriptor -> MLP gate -> Mamba.
+  # Stage indices are zero-based encoder stages. Stage 4 IQUMamba uses Mamba
+  # layers at encoder stages 1 and 3.
+  asg_apply_stages: [1, 3]
+  asg_patch_size: 32
+  asg_stride: 16
+  asg_num_bands: 3
+  asg_gate_hidden: 8
+  asg_scale_init: 0.01
+  asg_zero_init: true
+  asg_eps: 1.0e-8

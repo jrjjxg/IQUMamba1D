@@ -1,0 +1,33 @@
+# IQUMamba1D_CyclicCorrLeakCancel - original stage-4 IQUMamba with output-side
+# covariance leakage cancellation.
+# The output head uses only mixture and predicted sources; it does not read
+# bits, targets, SNR labels, modulation labels, or samples-per-symbol metadata.
+
+model_config:
+  model_type: iqumamba_cycliccorr_leakcancel
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Mixture-estimated cyclic frequency used only by the output leakage head.
+  cycliccorr_min_freq: 0.015625
+  cycliccorr_max_freq: 0.125
+  cycliccorr_default_freq: 0.03125
+
+  # Output leakage head.  Default is a closed-form complex covariance
+  # decorrelation step; learned/hybrid modes are available for ablation.
+  leakcancel_lags: [0, 1, 2, 4, 8]
+  leakcancel_hidden: 16
+  leakcancel_scale_init: 0.2
+  leakcancel_mc_scale_init: 0.05
+  leakcancel_mc_weight_mode: uniform
+  leakcancel_mode: covariance
+  leakcancel_coeff_limit: 0.25
+  leakcancel_zero_init: true

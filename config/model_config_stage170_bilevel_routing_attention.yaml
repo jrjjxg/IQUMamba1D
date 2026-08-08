@@ -1,0 +1,21 @@
+model_config:
+  model_type: resunet1d_bilevel_routing_bottleneck
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  use_complex_mask: false
+
+  # BiFormer, CVPR 2023: https://github.com/rayleizhu/BiFormer
+  attention_heads: 8
+  routing_segments: 16
+  routing_topk: 4
+  attention_dropout: 0.05
+  projection_dropout: 0.0
+  bottleneck_scale_init: 0.05

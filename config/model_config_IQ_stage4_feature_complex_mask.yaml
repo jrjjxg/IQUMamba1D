@@ -1,0 +1,31 @@
+model_config:
+
+  model_type: iqumamba_feature_complex_mask
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Learned complex feature-mask output parameterization.
+  feature_mask_channels: 8
+  feature_mask_kernel_size: 9
+  feature_mask_bound: 4.0
+  feature_mask_sum_constraint: true
+  feature_mask_apply_projection: true
+  feature_mask_project_deep_supervision: true
+  feature_mask_logit_scale_init: 0.05
+  feature_mask_identity_init: true
+
+  # Waveform mixture-consistency projection after complex feature decoding.
+  mc_weight_mode: uniform
+  mc_weight_power: 1.0
+  mc_min_weight: 0.0
+  mc_eps: 0.00000001
+  mc_detach_weights: false
+  mc_apply_train: true
+  mc_apply_eval: true

@@ -1,0 +1,11 @@
+model_config:
+
+  model_type: icassp_baseline_unet
+  input_channels: 2
+  # Official task: one known complex SOI, encoded as I/Q.
+  num_classes: 2
+  k_neurons: 32
+  k_sz: 3
+  long_k_sz: 101
+  dropout_first: 0.25
+  dropout_rest: 0.5

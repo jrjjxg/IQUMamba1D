@@ -1,0 +1,33 @@
+# Stage 296: stage4 IQUMamba backbone + FSQ token cross-entropy prior.
+#
+# The backbone, forward pass, and inference cost are IDENTICAL to stage4
+# (no model_type -> plain IQUMamba1D). The only change is a training-only
+# auxiliary loss: predicted sources are encoded by a frozen, pretrained FSQ
+# tokenizer (pretrain_fsq_tokenizer.py) and trained with cross entropy to
+# match the clean targets' discrete tokens. This transfers the RF
+# Transformer's "token CE >> waveform MSE for BER" finding (arXiv:2603.09201)
+# to a non-autoregressive separator: stage4 vs stage296 isolates the effect
+# of the learned discrete-symbol prior with zero inference-time overhead.
+#
+# Prerequisite: pretrain the tokenizer once on the clean sources of the data
+# choices you train on, e.g.
+#   python pretrain_fsq_tokenizer.py --data_choices 8PSK-A 8PSK-H --epochs 30 \
+#     --out checkpoints/fsq_tokenizer/fsq_tokenizer_best.pth
+model_config:
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # --- stage-296 FSQ token CE prior (training-only; eval untouched) ---
+  fsq_token_ce_enable: true
+  fsq_token_ce_weight: 0.3
+  fsq_token_ce_temperature: 0.5
+  fsq_token_ce_warmup_steps: 2000
+  fsq_tokenizer_checkpoint: checkpoints/fsq_tokenizer/fsq_tokenizer_best.pth

@@ -1,0 +1,17 @@
+# RF Challenge adaptation of Stage 336: clean Stage-4 backbone with standalone
+# S4D-Lin memory layers.  One known complex SOI is emitted as a single I/Q pair.
+model_config:
+  model_type: iqumamba_stage4_s4d
+  input_channels: 2
+  num_classes: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  memory_d_state: 64
+  memory_dropout: 0.0
+  memory_dt_min: 0.001
+  memory_dt_max: 0.1

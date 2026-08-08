@@ -1,0 +1,32 @@
+# Stage 267: Stage 261 plus the Stage-79 estimated Cyclo-FRESH input prior.
+# The cyclic frequency is estimated from the received I/Q mixture itself; no
+# samples-per-symbol, modulation label, or target-side information is used.
+model_config:
+  model_type: icassp_wavenet_interleaved_cyclofresh
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01
+
+  # Stage-79 metadata-free estimated Cyclo-FRESH residual adapter.
+  estimated_cyclofresh_min_freq: 0.015625
+  estimated_cyclofresh_max_freq: 0.125
+  estimated_cyclofresh_default_freq: 0.03125
+  estimated_cyclofresh_momentum: 0.05
+  estimated_cyclofresh_hidden_channels: 8
+  estimated_cyclofresh_kernel_size: 9
+  estimated_cyclofresh_scale_init: 0.01
+  estimated_cyclofresh_gate_hidden: 8
+  estimated_cyclofresh_zero_init: true

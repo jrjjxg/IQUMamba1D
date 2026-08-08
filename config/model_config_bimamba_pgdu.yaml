@@ -1,0 +1,27 @@
+model_config:
+  model_type: bimamba_pgdu
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # PGD-Unfolded Communication-Prior Separator:
+  #   min_S 0.5 ||sum_k s_k - x_mix||_2^2 + R_comm(S)
+  #   r^t       = sum_k s_k^t - x_mix
+  #   y_k^t     = s_k^t - eta_t r^t
+  #   s_k^{t+1} = Prox_comm(y_k^t)
+  # For K=2 sources, eta is constrained to (0, 1), so 0.5 is the conservative
+  # midpoint of the stable gradient-descent interval.
+  pgdu_num_steps: 3
+  pgdu_hidden_channels: 48
+  pgdu_kernel_size: 7
+  pgdu_dropout: 0.0
+  pgdu_tied_steps: true
+  pgdu_step_size_init: 0.5
+  pgdu_prox_step_init: 0.25

@@ -1,0 +1,16 @@
+# RF Challenge adaptation of Stage 4 (IQUMamba1D).
+#
+# The public ICASSP 2024 task estimates one known complex SOI.  Therefore its
+# head has two channels (I/Q), rather than the four channels used by the
+# project's two-source separation experiments.
+model_config:
+  model_type: iqumamba
+  input_channels: 2
+  num_classes: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false

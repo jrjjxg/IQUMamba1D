@@ -1,0 +1,22 @@
+model_config:
+  model_type: bimamba_uric
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Lightweight URIC head for the stage-4 BiMamba ablation.
+  ric_num_steps: 2
+  ric_hidden_channels: 32
+  ric_kernel_size: 5
+  ric_dropout: 0.0
+  ric_tied_steps: true
+  ric_step_init: 0.3
+  ric_return_intermediate: true
+  ric_update_block_type: conv

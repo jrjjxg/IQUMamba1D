@@ -1,0 +1,28 @@
+# Stage 247: Stage 12 + compact STFT/time-domain RF physical KV bank.
+model_config:
+  model_type: bimamba_rf_physical_kv
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  rf_physical_query_stage: 2
+  rf_physical_num_heads: 4
+  rf_physical_dropout: 0.0
+  rf_physical_residual_scale_init: 0.01
+  rf_physical_stft_n_fft: 256
+  rf_physical_stft_hop_length: 64
+  rf_physical_stft_win_length: 256
+  rf_physical_num_subbands: 8
+  rf_physical_temporal_tokens: 4
+  rf_physical_cyclic_lags: [0, 1, 2, 4, 8]
+  rf_physical_polyphase_branches: 8
+  rf_physical_symbol_orders: [2, 4, 8]
+  rf_physical_min_cyclic_freq: 0.015625
+  rf_physical_max_cyclic_freq: 0.125
+  rf_physical_cyclic_temperature: 0.25

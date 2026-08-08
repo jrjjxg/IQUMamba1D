@@ -1,0 +1,17 @@
+# CVPR 2024 FADC 1D: FFT frequency selection, continuous AdaDR and AdaKern.
+model_config:
+  model_type: iqumamba_recent_rf
+  rf_module_type: fadc
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  rf_residual_scale_init: 0.05
+  rf_apply_stages: [0, 1]
+  rf_kernel_size: 7
+  rf_cutoffs: [2, 4, 8]

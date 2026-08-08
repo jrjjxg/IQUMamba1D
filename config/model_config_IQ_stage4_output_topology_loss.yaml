@@ -1,0 +1,20 @@
+# IQUMamba1D Stage 193 - output topology-stat auxiliary loss.
+# Opposed ablation: same backbone as stage 4, no feature/input adapter.
+model_config:
+
+  model_type: iqumamba
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  topology_aux_weight: 0.05
+  topology_aux_axis_weight: 1.0
+  topology_aux_amp_weight: 1.0
+  topology_aux_phase_weight: 0.5
+  topology_aux_kurtosis_weight: 0.25

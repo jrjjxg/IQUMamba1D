@@ -1,0 +1,20 @@
+model_config:
+  model_type: ctdcrn
+
+  input_channels: 2
+  num_classes: 4
+
+  # CTDCRN hyperparameters (paper Table II best row + training section)
+  ctdcrn_config:
+    n_srcs: 2
+    J: 2
+    M: 128
+    N: 32
+    U: 128
+    S: 3
+    V: 8
+    L: 1
+    H: 32
+    eps: 1.0e-8
+    leaky_relu_slope: 0.01
+

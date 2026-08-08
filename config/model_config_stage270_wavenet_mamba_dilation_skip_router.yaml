@@ -1,0 +1,26 @@
+# Stage 270: frame-conditioned routing across the second WaveNet dilation cycle.
+# Mamba turns the first ten blocks into a global state and uses it to route the
+# residual and skip paths of blocks 11--20 (dilations 1, 2, ..., 512).
+model_config:
+  model_type: icassp_wavenet_mamba_dilation_skip_router
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_controller_hidden: 128
+  mamba_controller_dropout: 0.0
+
+  # A softmax competes across the ten dilation paths.  Zero logits yield a
+  # unit gain on every path; strength controls deviation from that baseline.
+  mamba_router_strength: 0.15
+  mamba_router_temperature: 1.0

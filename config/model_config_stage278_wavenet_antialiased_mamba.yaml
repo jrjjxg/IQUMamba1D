@@ -1,0 +1,19 @@
+# Stage 278: controlled Stage-261 replacement of only the multi-rate analysis.
+# WaveNet(10) -> fixed anti-alias FIR / stride-4 Mamba -> WaveNet(10).
+model_config:
+  model_type: icassp_wavenet_antialiased_mamba
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01
+  antialias_taps_per_phase: 8
+  antialias_cutoff_ratio: 0.90

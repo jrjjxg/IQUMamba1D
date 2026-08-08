@@ -1,0 +1,29 @@
+# Stage 268: asymmetric improvement of Stage 262.
+#
+# Preserve Stage 261's forward low-rate Mamba path and add the reverse scan as
+# a bounded per-channel correction: forward + tanh(gate) * (backward - forward).
+# This avoids the direct forward/backward concatenate-and-project fusion used
+# by Stage 262. Set mamba_backward_gate_init to 0.0 when warm-starting from a
+# Stage-261 checkpoint for exact initial forward-path equivalence.
+model_config:
+  model_type: icassp_wavenet_interleaved_gated_bimamba
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01
+
+  # tanh(raw_gate) is the backward correction strength.  A small value gives
+  # the new branch gradients without allowing it to overwrite Stage 261 early.
+  mamba_backward_gate_init: 0.01

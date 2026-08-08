@@ -1,0 +1,30 @@
+# IQUBiMamba1D_AMR — Joint BSS + AMR (BiMamba + AMR Classifier Head)
+#
+# Architecture:
+#   Separation backbone: identical to IQUBiMamba1D (stage 12)
+#   + shared AMR classifier head applied to each separated source
+#
+# Training modes (set via --amr_mode):
+#   sep_only  — standard separation, AMR head unused
+#   cls_only  — separator frozen, only classifier trains
+#   joint     — end-to-end, both outputs returned
+
+model_config:
+  model_type: bimamba_amr
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # AMR classifier head parameters
+  num_mod_classes: 11      # total modulation classes in vocabulary
+  cls_hidden: 64           # Conv1d feature width
+  cls_mamba_dim: 64        # BiMamba dim in classifier
+  cls_dropout: 0.3         # FC dropout rate
+  detach_cls: false        # if true, stop gradient from classifier to separator

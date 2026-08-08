@@ -1,0 +1,23 @@
+# IQUMamba1D_QAMLatticePrior - stage-4 IQUMamba with a QAM lattice input adapter.
+# Intended for QAM datasets where I/Q axis-level structure is informative.
+
+model_config:
+  model_type: iqumamba_qam_lattice_prior
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  qam_prior_hidden_channels: 8
+  qam_prior_axis_level_bank: [4, 8, 12, 16]
+  qam_prior_temperature: 24.0
+  qam_prior_kernel_size: 9
+  qam_prior_scale_init: 0.01
+  qam_prior_reliability_floor: 0.05
+  qam_prior_zero_init: true

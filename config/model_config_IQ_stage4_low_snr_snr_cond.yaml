@@ -1,0 +1,28 @@
+# IQUMamba1D Stage 204 - low-SNR SNR-proxy conditioned enhancement.
+model_config:
+
+  model_type: iqumamba_low_snr_snr_cond
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Per-sample log power, envelope variance and high-frequency energy ratio
+  # condition the residual enhancement scale.
+  low_snr_cond_hidden_channels: 24
+  low_snr_cond_kernel_size: 9
+  low_snr_cond_gate_hidden: 12
+  low_snr_cond_scale_init: 0.01
+  low_snr_cond_zero_init: true
+  low_snr_cond_use_projection: true
+  low_snr_cond_project_during_train: false
+  low_snr_cond_project_during_eval: true
+  low_snr_cond_source_weight: 0.25
+  low_snr_cond_noise_weight: 1.0
+  low_snr_cond_eps: 1.0e-8
+  low_snr_cond_return_aux: false

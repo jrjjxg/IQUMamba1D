@@ -1,0 +1,16 @@
+# Stage321: Stage320 no-Mamba control plus the Stage309 FDConv placement.
+model_config:
+  model_type: iqumamba_fdconv_unirep_ablation
+  rf_variant: no_mamba_fdconv
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  rf_residual_scale_init: 0.05
+  fdconv_kernel_size: 31
+  fdconv_bands: 4

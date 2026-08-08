@@ -1,0 +1,19 @@
+model_config:
+
+  model_type: iqumamba_symbol_dualpath
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # 8PSK-A uses Fs_sps=20 in the MATLAB metadata.  The adapter converts these
+  # sample-domain symbol chunks to each encoder stage's downsampled token grid.
+  symbol_samples: 20
+  dual_path_chunk_symbols: 4
+  dual_path_hop_symbols: 2
+  dual_path_residual_scale_init: 0.01

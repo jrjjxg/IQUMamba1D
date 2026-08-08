@@ -1,0 +1,54 @@
+# Stage 366: original four-level Stage-4 + cross-SNR EMA distillation
+# + explicit synchronization-parameter FiLM conditioning.
+model_config:
+  model_type: iqumamba_sync_conditioned
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Mixture-only synchronization estimator. SNR has direct labels; CFO,
+  # phase, timing, SPS and drift are task-trained and cross-SNR distilled.
+  sync_hidden: 48
+  sync_lags: [1, 2, 4, 8, 16]
+  sync_sps_candidates: [8, 10, 16, 20, 32, 40]
+  sync_snr_min_db: -10.0
+  sync_snr_max_db: 30.0
+  sync_max_cfo_cycles_per_sample: 0.25
+  sync_max_phase_drift_rad_per_sample: 0.05
+  sync_sps_temperature: 1.0
+  sync_film_max_delta: 0.10
+  sync_eps: 1.0e-6
+
+  # Same-clean-source high/low SNR views.  The high view is evaluated with a
+  # checkpointed EMA teacher; low SNR follows a 2 -> -6 -> -10 dB curriculum.
+  cross_snr_enable: true
+  cross_snr_probability: 0.5
+  cross_snr_high_db: 10.0
+  cross_snr_low_start_db: 2.0
+  cross_snr_low_middle_db: -6.0
+  cross_snr_low_final_db: -10.0
+  cross_snr_first_fraction: 0.2
+  cross_snr_second_fraction: 0.6
+  cross_snr_pair_weight: 0.5
+  cross_snr_consistency_weight: 0.1
+  cross_snr_consistency_beta: 0.5
+  cross_snr_eps: 1.0e-8
+  cross_snr_shared_permutation: true
+  cross_snr_ema_teacher_enable: true
+  cross_snr_ema_decay: 0.999
+
+  sync_snr_aux_weight: 0.05
+  sync_snr_aux_min_db: -10.0
+  sync_snr_aux_max_db: 30.0
+  sync_snr_aux_beta: 0.1
+  sync_cross_snr_consistency_weight: 0.05
+  sync_cross_snr_consistency_beta: 0.1
+  sync_cfo_scale: 0.25
+  sync_phase_drift_scale: 0.05
+

@@ -1,0 +1,25 @@
+# Stage 277: full WaveNet cycle -> ordered chunk Mamba -> strong fusion ->
+# full WaveNet cycle. This retains Stage 273's 20 WaveNet blocks while making
+# the Mamba branch temporally ordered and strongly active.
+model_config:
+
+  model_type: icassp_wavenet_chunk_mamba_strong_fusion
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  mamba_channels: 64
+  mamba_chunk_size: 64
+  mamba_chunk_hop: 32
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+
+  mamba_fusion_gain_init: 1.0
+  mamba_fusion_norm_eps: 1.0e-6

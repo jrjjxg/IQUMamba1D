@@ -3,7 +3,12 @@ import h5py
 import numpy as np
 import random as _random
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import (
+    ConcatDataset,
+    Dataset,
+    DataLoader,
+    WeightedRandomSampler,
+)
 from scipy.io import loadmat
 import re
 from abc import ABC, abstractmethod
@@ -17,6 +22,66 @@ MATLAB_DATA_CHOICE_ALIASES = {
     "QPSK-16APSK-A": "QPSK+16APSK-A",
     "QPSK-16APSK-B": "QPSK+16APSK-B",
 }
+
+
+def _fixed_protocol_sync_defaults(data_choice: str, num_sources: int):
+    """Return paper-defined synchronization parameters for old fixed datasets.
+
+    Early MATLAB files saved waveform/SPS metadata but omitted the fixed CFO,
+    phase, delay and sampling-rate constants printed by their generator.  These
+    values are protocol constants, not estimates from the observed waveform.
+    Random/non-stationary datasets are intentionally absent.
+    """
+    key = _normalize_matlab_data_choice(str(data_choice))
+    pi = float(np.pi)
+    protocols = {
+        "8PSK-A": (100e6, [-500.0, 500.0], [0.0, pi / 3.0], [0.0, 1.0]),
+        "8PSK-B": (50e6, [-250.0, 500.0], [0.0, pi / 5.0], [0.0, 6.0]),
+        "8PSK-C": (
+            100e6,
+            [-500.0, 0.0, 500.0],
+            [0.0, pi / 4.0, pi / 2.0],
+            [0.0, 1.0, 2.0],
+        ),
+        "8PSK-D": (
+            50e6,
+            [-625.0, 125.0, 875.0],
+            [0.0, pi / 5.0, 2.0 * pi / 5.0],
+            [0.0, 8.0, 15.0],
+        ),
+        "8PSK-E": (100e6, [-500.0, 500.0], [0.0, pi / 3.0], [0.0, 1.0]),
+        "8PSK-F": (100e6, [-500.0, 500.0], [0.0, pi / 3.0], [0.0, 1.0]),
+        "8PSK-G": (100e6, [-500.0, 500.0], [0.0, pi / 3.0], [0.0, 1.0]),
+        "QPSK+16APSK-A": (
+            100e6,
+            [-500.0, 500.0],
+            [0.0, pi / 3.0],
+            [0.0, 6.0],
+        ),
+        "QAM-A": (100e6, [-500.0, 500.0], [0.0, pi / 5.0], [0.0, 6.0]),
+        "QAM-B": (100e6, [-500.0, 500.0], [0.0, pi / 5.0], [0.0, 6.0]),
+        "QAM-C": (100e6, [-500.0, 500.0], [0.0, pi / 5.0], [0.0, 6.0]),
+        "QAM-D": (
+            100e6,
+            [-500.0, 0.0, 500.0],
+            [0.0, pi / 4.0, pi / 3.0],
+            [0.0, 0.0, 1.0],
+        ),
+    }
+    values = protocols.get(key)
+    if values is None:
+        return None
+    sample_rate_hz, cfo_hz, phase_rad, delay_samples = values
+    if not all(len(items) == int(num_sources) for items in (cfo_hz, phase_rad, delay_samples)):
+        return None
+    return {
+        "sample_rate_hz": float(sample_rate_hz),
+        "cfo_hz_by_source": list(cfo_hz),
+        "initial_phase_rad_by_source": list(phase_rad),
+        "delay_samples_by_source": list(delay_samples),
+        # Legacy RF generators use t=(0:N-1)/Fs, unlike the newer cumsum generator.
+        "phase_first_sample_offset": 0,
+    }
 
 
 def _normalize_matlab_data_choice(data_choice: str) -> str:
@@ -51,6 +116,34 @@ def _matlab_vector_or_default(h5_file, key: str, default=None):
     if arr.size == 0:
         return default
     return np.asarray(arr).reshape(-1).tolist()
+
+
+def _matlab_frame_source_matrix_or_default(
+    h5_file,
+    key: str,
+    num_frames: int,
+    num_sources: int,
+    default=None,
+):
+    """Read a MATLAB frame-by-source matrix, accounting for v7.3 axis order."""
+    if key not in h5_file:
+        return default
+    arr = np.asarray(h5_file[key])
+    if arr.size == 0:
+        return default
+    arr = np.squeeze(arr)
+    if arr.ndim == 1:
+        if int(num_frames) == 1 and arr.size == int(num_sources):
+            arr = arr.reshape(1, int(num_sources))
+        elif int(num_sources) == 1 and arr.size == int(num_frames):
+            arr = arr.reshape(int(num_frames), 1)
+        else:
+            return default
+    if arr.shape == (int(num_sources), int(num_frames)):
+        arr = arr.T
+    if arr.shape != (int(num_frames), int(num_sources)):
+        return default
+    return np.asarray(arr, dtype=np.float64)
 
 
 def _read_h5_bits_vector(h5_file):
@@ -190,8 +283,9 @@ class RandomSignalDataset(Dataset):
 class MATLABSignalDataset(BaseSignalDataset):
     """MATLAB generated signal dataset - supports multi-source data in same file"""
     
-    def __init__(self, signal_paths: List[str], mixture_paths: List[str], 
-                 data_choice: str, num_sources: int = 2):
+    def __init__(self, signal_paths: List[str], mixture_paths: List[str],
+                 data_choice: str, num_sources: int = 2,
+                 return_sync_metadata: bool = False):
         """
         Args:
             signal_paths: Target signal path list (each file contains all sources)
@@ -201,6 +295,8 @@ class MATLABSignalDataset(BaseSignalDataset):
         """
         super().__init__(num_sources)
         self.data_choice = data_choice
+        self.return_sync_metadata = bool(return_sync_metadata)
+        self._uses_fixed_protocol_sync_fallback = False
         self._frame_counts = []  # Track frame count per file for bits loading
         self._file_meta = []     # Per-file metadata for stream-level BER evaluation
         self._load_data(signal_paths, mixture_paths)
@@ -228,6 +324,7 @@ class MATLABSignalDataset(BaseSignalDataset):
                 frame_length_meta = _matlab_scalar_or_default(f, 'frame_length', data.shape[1])
                 valid_frame_length_meta = _matlab_scalar_or_default(f, 'valid_frame_length', frame_length_meta)
                 samples_per_symbol_meta = _matlab_scalar_or_default(f, 'Fs_sps', None)
+                samples_per_symbol_by_source_meta = _matlab_vector_or_default(f, 'Fs_sps_by_source', None)
                 symbols_per_frame_meta = _matlab_scalar_or_default(f, 'symbols_per_frame', None)
                 bits_per_symbol_meta = _matlab_scalar_or_default(f, 'bits_per_symbol', None)
                 bits_per_frame_meta = _matlab_scalar_or_default(f, 'bits_per_frame', None)
@@ -245,6 +342,20 @@ class MATLABSignalDataset(BaseSignalDataset):
                 payload_bits_per_frame_meta = _matlab_scalar_or_default(f, 'payload_bits_per_frame', None)
                 rrc_alpha_meta = _matlab_scalar_or_default(f, 'rrc_alpha', None)
                 rrc_span_meta = _matlab_scalar_or_default(f, 'rrc_span', None)
+                sample_rate_mhz_meta = _matlab_scalar_or_default(f, 'sample_rate_mhz', None)
+                cfo_hz_meta = _matlab_vector_or_default(f, 'cfo_hz', None)
+                initial_phase_meta = _matlab_vector_or_default(f, 'initial_phase_rad', None)
+                delay_samples_meta = _matlab_vector_or_default(f, 'delay_samples_by_source', None)
+                phase_drift_meta = _matlab_vector_or_default(
+                    f, 'phase_drift_rad_per_sample', None
+                )
+                frame_phase_meta = _matlab_frame_source_matrix_or_default(
+                    f,
+                    'frame_initial_phase_rad_by_source',
+                    data.shape[0],
+                    self.num_sources,
+                    None,
+                )
 
             frame_length_meta = int(frame_length_meta)
             valid_frame_length_meta = int(valid_frame_length_meta)
@@ -292,6 +403,52 @@ class MATLABSignalDataset(BaseSignalDataset):
             # Extract SNR information
             snr = self._extract_snr_from_path(path)
             n_frames = len(data)
+            protocol_sync = _fixed_protocol_sync_defaults(
+                self.data_choice, self.num_sources
+            )
+            uses_protocol_sync = bool(
+                protocol_sync is not None
+                and (
+                    sample_rate_mhz_meta is None
+                    or cfo_hz_meta is None
+                    or initial_phase_meta is None
+                    or delay_samples_meta is None
+                )
+            )
+            if uses_protocol_sync:
+                self._uses_fixed_protocol_sync_fallback = True
+            sample_rate_hz = (
+                float(sample_rate_mhz_meta) * 1e6
+                if sample_rate_mhz_meta is not None
+                else (
+                    protocol_sync["sample_rate_hz"]
+                    if protocol_sync is not None else None
+                )
+            )
+            cfo_hz_by_source = (
+                [float(x) for x in cfo_hz_meta]
+                if cfo_hz_meta is not None
+                else (
+                    protocol_sync["cfo_hz_by_source"]
+                    if protocol_sync is not None else None
+                )
+            )
+            initial_phase_by_source = (
+                [float(x) for x in initial_phase_meta]
+                if initial_phase_meta is not None
+                else (
+                    protocol_sync["initial_phase_rad_by_source"]
+                    if protocol_sync is not None else None
+                )
+            )
+            delay_by_source = (
+                [float(x) for x in delay_samples_meta]
+                if delay_samples_meta is not None
+                else (
+                    protocol_sync["delay_samples_by_source"]
+                    if protocol_sync is not None else None
+                )
+            )
             self.snrs.extend([snr] * n_frames)
             self._frame_counts.append(n_frames)
             self._file_meta.append({
@@ -306,6 +463,10 @@ class MATLABSignalDataset(BaseSignalDataset):
                 "valid_frame_length": valid_frame_length_meta,
                 "model_frame_length": model_frame_length_meta,
                 "samples_per_symbol": int(samples_per_symbol_meta) if samples_per_symbol_meta is not None else None,
+                "samples_per_symbol_by_source": (
+                    [int(x) for x in samples_per_symbol_by_source_meta]
+                    if samples_per_symbol_by_source_meta is not None else None
+                ),
                 "symbols_per_frame": int(symbols_per_frame_meta) if symbols_per_frame_meta is not None else None,
                 "bits_per_symbol": int(bits_per_symbol_meta) if bits_per_symbol_meta is not None else None,
                 "bits_per_frame": int(bits_per_frame_meta) if bits_per_frame_meta is not None else None,
@@ -318,6 +479,20 @@ class MATLABSignalDataset(BaseSignalDataset):
                 "payload_bits_per_frame": int(payload_bits_per_frame_meta) if payload_bits_per_frame_meta is not None else None,
                 "rrc_alpha": float(rrc_alpha_meta) if rrc_alpha_meta is not None else None,
                 "rrc_span": int(rrc_span_meta) if rrc_span_meta is not None else None,
+                "sample_rate_hz": sample_rate_hz,
+                "cfo_hz_by_source": cfo_hz_by_source,
+                "initial_phase_rad_by_source": initial_phase_by_source,
+                "delay_samples_by_source": delay_by_source,
+                "sync_metadata_protocol_fallback": uses_protocol_sync,
+                "phase_first_sample_offset": (
+                    protocol_sync["phase_first_sample_offset"]
+                    if uses_protocol_sync else 1
+                ),
+                "phase_drift_rad_per_sample_by_source": (
+                    [float(x) for x in phase_drift_meta]
+                    if phase_drift_meta is not None else None
+                ),
+                "frame_initial_phase_rad_by_source": frame_phase_meta,
             })
             sample_offset += n_frames
         
@@ -344,6 +519,12 @@ class MATLABSignalDataset(BaseSignalDataset):
             self.mixture = _pad_frame_array(self.mixture, self.model_frame_length)
 
         self.num_samples = len(self.mixture)
+
+        if self._uses_fixed_protocol_sync_fallback:
+            print(
+                "[MATLAB Meta] Restored missing synchronization labels from the "
+                f"fixed {self.data_choice} paper protocol."
+            )
         
         print(f"Successfully loaded MATLAB dataset:")
         print(f"  Number of samples: {self.num_samples}")
@@ -355,6 +536,100 @@ class MATLABSignalDataset(BaseSignalDataset):
                 f"  Frame length metadata: valid={self.valid_frame_length}, raw={self.frame_length}, "
                 f"adapted_for_model={self.model_frame_length}"
             )
+
+    @staticmethod
+    def _source_values(values, num_sources: int, *, shared=None, dtype=torch.float32):
+        result = torch.zeros(num_sources, dtype=dtype)
+        valid = torch.zeros(num_sources, dtype=torch.bool)
+        if values is None and shared is not None:
+            values = [shared] * num_sources
+        if values is not None:
+            for source_idx, value in enumerate(values[:num_sources]):
+                result[source_idx] = value
+                valid[source_idx] = True
+        return result, valid
+
+    def _sync_metadata_for_index(self, idx: int) -> dict:
+        file_meta = next(
+            (
+                meta for meta in self._file_meta
+                if int(meta["start"]) <= int(idx) < int(meta["end"])
+            ),
+            None,
+        )
+        if file_meta is None:
+            raise IndexError(f"no MATLAB metadata found for sample index {idx}")
+        sample_rate_hz = file_meta.get("sample_rate_hz")
+        cfo_hz, cfo_valid = self._source_values(
+            file_meta.get("cfo_hz_by_source"), self.num_sources
+        )
+        if sample_rate_hz is None or float(sample_rate_hz) <= 0.0:
+            cfo_cycles = torch.zeros_like(cfo_hz)
+            cfo_valid.zero_()
+        else:
+            cfo_cycles = cfo_hz / float(sample_rate_hz)
+
+        local_frame_index = int(idx) - int(file_meta["start"])
+        frame_phases = file_meta.get("frame_initial_phase_rad_by_source")
+        if frame_phases is not None and local_frame_index < len(frame_phases):
+            phase, phase_valid = self._source_values(
+                frame_phases[local_frame_index], self.num_sources
+            )
+        else:
+            phase, phase_valid = self._source_values(
+                file_meta.get("initial_phase_rad_by_source"), self.num_sources
+            )
+            frame_length = file_meta.get("frame_length")
+            if frame_length is not None:
+                # The project generator uses cumsum(inst_freq), so the first
+                # sample has offset 1 rather than 0 from initial_phase_rad.
+                first_sample = (
+                    local_frame_index * int(frame_length)
+                    + int(file_meta.get("phase_first_sample_offset", 1))
+                )
+                phase = phase + 2.0 * torch.pi * cfo_cycles * float(first_sample)
+                phase = torch.atan2(torch.sin(phase), torch.cos(phase))
+            if getattr(self, 'data_choice', '') in {
+                '8PSK-H', '8PSK-I', '8PSK-J', '8PSK-K',
+                'QPSK+16APSK-B', 'QAM-E',
+            }:
+                # Old files with nonlinear carrier drift do not contain exact
+                # per-frame phase. Newly generated files use frame_phases above.
+                phase_valid.zero_()
+        delay, timing_valid = self._source_values(
+            file_meta.get("delay_samples_by_source"), self.num_sources
+        )
+        sps, sps_valid = self._source_values(
+            file_meta.get("samples_per_symbol_by_source"),
+            self.num_sources,
+            shared=file_meta.get("samples_per_symbol"),
+        )
+        drift, drift_valid = self._source_values(
+            file_meta.get("phase_drift_rad_per_sample_by_source"), self.num_sources
+        )
+        return {
+            "sync_metadata_version": torch.tensor(1, dtype=torch.int64),
+            "cfo_cycles_per_sample": cfo_cycles,
+            "cfo_valid": cfo_valid,
+            "phase_rad": phase,
+            "phase_valid": phase_valid,
+            "timing_offset_samples": delay,
+            "timing_valid": timing_valid,
+            "samples_per_symbol": sps,
+            "sps_valid": sps_valid,
+            "phase_drift_rad_per_sample": drift,
+            "drift_valid": drift_valid,
+            "protocol_fallback": torch.tensor(
+                bool(file_meta.get("sync_metadata_protocol_fallback", False)),
+                dtype=torch.bool,
+            ),
+        }
+
+    def __getitem__(self, idx):
+        sample = super().__getitem__(idx)
+        if not self.return_sync_metadata:
+            return sample
+        return (*sample, self._sync_metadata_for_index(idx))
 
     def load_bits(self, bits_paths_per_source):
         """Load bits data from per-source .mat files for BER evaluation.
@@ -654,6 +929,23 @@ class LightweightRFTrainAugmentDataset(Dataset):
             return tuple(extras[0]), list(extras[1:])
         return None, list(extras)
 
+    @staticmethod
+    def _clone_sync_metadata(extras):
+        cloned = list(extras)
+        for index, value in enumerate(cloned):
+            if isinstance(value, dict) and "sync_metadata_version" in value:
+                metadata = {
+                    key: item.clone() if torch.is_tensor(item) else item
+                    for key, item in value.items()
+                }
+                cloned[index] = metadata
+                return metadata, cloned
+        return None, cloned
+
+    @staticmethod
+    def _wrap_phase(angle: torch.Tensor) -> torch.Tensor:
+        return torch.atan2(torch.sin(angle), torch.cos(angle))
+
     def _extract_source_from_sample(self, sample, source_idx: int, signal_length: int):
         _, donor_target, _, *donor_extras = sample
         if donor_target.dim() != 2 or donor_target.size(0) != 2 * self.num_sources:
@@ -721,6 +1013,7 @@ class LightweightRFTrainAugmentDataset(Dataset):
 
         sources = target.view(self.num_sources, 2, signal_length)
         bits_tuple, passthrough_extras = self._split_bits_and_extras(extras)
+        sync_metadata, passthrough_extras = self._clone_sync_metadata(passthrough_extras)
         residual_noise = input_signal - sources.sum(dim=0)
 
         if self.mix_enable and self.mix_prob > 0.0 and torch.rand(1).item() < self.mix_prob:
@@ -729,6 +1022,13 @@ class LightweightRFTrainAugmentDataset(Dataset):
                 input_signal=input_signal,
                 bits_tuple=bits_tuple,
             )
+            if sync_metadata is not None and self.mix_cross_sample:
+                # Donor waveforms currently do not expose donor metadata here;
+                # invalidating labels is safer than silently training stale ones.
+                for key in (
+                    "cfo_valid", "phase_valid", "timing_valid", "sps_valid", "drift_valid"
+                ):
+                    sync_metadata[key].zero_()
 
         if self.source_phase_jitter_deg > 0:
             max_rad = np.deg2rad(self.source_phase_jitter_deg)
@@ -736,6 +1036,10 @@ class LightweightRFTrainAugmentDataset(Dataset):
                 (torch.rand(self.num_sources, dtype=sources.dtype) * 2.0 - 1.0) * max_rad
             )
             sources = self._rotate_sources_iq(sources, phase_offsets)
+            if sync_metadata is not None:
+                sync_metadata["phase_rad"] = self._wrap_phase(
+                    sync_metadata["phase_rad"] + phase_offsets
+                )
 
         if self.source_gain_jitter_db > 0:
             gain_offsets_db = (
@@ -759,6 +1063,17 @@ class LightweightRFTrainAugmentDataset(Dataset):
             if shift != 0:
                 sources = torch.roll(sources, shifts=shift, dims=-1)
                 residual_noise = torch.roll(residual_noise, shifts=shift, dims=-1)
+                if sync_metadata is not None:
+                    sync_metadata["timing_offset_samples"] = (
+                        sync_metadata["timing_offset_samples"] + float(shift)
+                    )
+                    sync_metadata["phase_rad"] = self._wrap_phase(
+                        sync_metadata["phase_rad"]
+                        - 2.0
+                        * torch.pi
+                        * sync_metadata["cfo_cycles_per_sample"]
+                        * float(shift)
+                    )
 
         if self.global_phase_rotation:
             angle = (torch.rand(1, dtype=sources.dtype) * (2.0 * np.pi) - np.pi).squeeze(0)
@@ -767,6 +1082,10 @@ class LightweightRFTrainAugmentDataset(Dataset):
                 torch.full((self.num_sources,), angle, dtype=sources.dtype),
             )
             residual_noise = self._rotate_single_iq(residual_noise, angle)
+            if sync_metadata is not None:
+                sync_metadata["phase_rad"] = self._wrap_phase(
+                    sync_metadata["phase_rad"] + angle
+                )
 
         augmented_input = sources.sum(dim=0) + residual_noise
         augmented_target = sources.reshape(expected_channels, signal_length)
@@ -1003,6 +1322,9 @@ def create_data_loaders(
     seed: int = 42,
     split_strategy: str = "random",
     train_aug_config: Optional[Dict[str, Union[bool, int, float]]] = None,
+    return_sync_metadata: bool = False,
+    train_snr_floor_db: Optional[float] = None,
+    val_snr_floor_db: Optional[float] = None,
 ) -> Tuple[DataLoader, DataLoader, Dict[float, DataLoader]]:
     """
     Unified interface for creating data loaders
@@ -1021,6 +1343,9 @@ def create_data_loaders(
         split_strategy: Dataset split policy. "random" keeps old behavior;
             "stratified_snr" performs SNR-stratified train/val/test splitting.
         train_aug_config: Optional train-only lightweight RF augmentation config.
+        return_sync_metadata: Append per-source MATLAB generator parameters to samples.
+        train_snr_floor_db: Optional hard SNR floor applied to the training subset.
+        val_snr_floor_db: Optional hard SNR floor applied to the validation subset.
     
     Returns:
         train_loader, val_loader, snr_loaders
@@ -1064,14 +1389,17 @@ def create_data_loaders(
         train_dataset = _create_matlab_dataset(
             data_choice, num_sources, matlab_data_root=matlab_data_root,
             file_indices=train_files,
+            return_sync_metadata=return_sync_metadata,
         )
         val_dataset = _create_matlab_dataset(
             data_choice, num_sources, matlab_data_root=matlab_data_root,
             file_indices=val_files,
+            return_sync_metadata=return_sync_metadata,
         )
         test_dataset = _create_matlab_dataset(
             data_choice, num_sources, matlab_data_root=matlab_data_root,
             file_indices=test_files,
+            return_sync_metadata=return_sync_metadata,
         )
         dataset_size = len(train_dataset) + len(val_dataset) + len(test_dataset)
         train_size = len(train_dataset)
@@ -1082,6 +1410,7 @@ def create_data_loaders(
         if is_matlab:
             dataset = _create_matlab_dataset(
                 data_choice, num_sources, matlab_data_root=matlab_data_root,
+                return_sync_metadata=return_sync_metadata,
             )
         elif data_choice in ['2016', '2018', 'TorchSig']:
             dataset = _create_public_dataset(
@@ -1126,6 +1455,34 @@ def create_data_loaders(
                 "Choose from ['random', 'stratified_snr']."
             )
     
+    if train_snr_floor_db is not None:
+        floor = float(train_snr_floor_db)
+        eligible = [
+            index for index in range(len(train_dataset))
+            if _normalize_snr_value(train_dataset[index][2]) >= floor
+        ]
+        if not eligible:
+            raise ValueError(
+                f"No training samples satisfy train_snr_floor_db={floor:g} dB"
+            )
+        train_dataset = torch.utils.data.Subset(train_dataset, eligible)
+        train_size = len(train_dataset)
+        print(f"[Train SNR filter] floor={floor:g} dB, retained={train_size} samples")
+
+    if val_snr_floor_db is not None:
+        floor = float(val_snr_floor_db)
+        eligible = [
+            index for index in range(len(val_dataset))
+            if _normalize_snr_value(val_dataset[index][2]) >= floor
+        ]
+        if not eligible:
+            raise ValueError(
+                f"No validation samples satisfy val_snr_floor_db={floor:g} dB"
+            )
+        val_dataset = torch.utils.data.Subset(val_dataset, eligible)
+        val_size = len(val_dataset)
+        print(f"[Validation SNR filter] floor={floor:g} dB, retained={val_size} samples")
+
     train_snr_counts = _count_snr_distribution(train_dataset)
     val_snr_counts = _count_snr_distribution(val_dataset)
     test_snr_counts = _count_snr_distribution(test_dataset)
@@ -1202,11 +1559,229 @@ def create_data_loaders(
     return train_loader, val_loader, snr_loaders
 
 
+class FixedLengthSignalDataset(Dataset):
+    """Adapt mixture/target waveforms to one length for multi-dataset batches."""
+
+    def __init__(self, dataset: Dataset, target_length: int, policy: str = "strict"):
+        self.dataset = dataset
+        self.target_length = int(target_length)
+        self.policy = str(policy)
+        if self.target_length <= 0:
+            raise ValueError(f"target_length must be positive, got {target_length}")
+        if self.policy not in {"strict", "crop", "pad_crop"}:
+            raise ValueError(
+                f"Unsupported length policy '{policy}'. Choose strict, crop, or pad_crop."
+            )
+        if len(dataset) == 0:
+            raise ValueError("Cannot adapt an empty dataset")
+        first = dataset[0]
+        self.source_length = self._sample_length(first)
+        if self.policy == "strict" and self.source_length != self.target_length:
+            raise ValueError(
+                f"Dataset waveform length {self.source_length} does not match joint "
+                f"pretraining length {self.target_length}. Select compatible datasets or "
+                "use --pretrain_length_policy crop/pad_crop explicitly."
+            )
+        if self.policy == "crop" and self.source_length < self.target_length:
+            raise ValueError(
+                f"Crop policy cannot expand waveform length {self.source_length} to "
+                f"{self.target_length}. Use pad_crop explicitly if padding is intended."
+            )
+
+    @staticmethod
+    def _sample_length(sample) -> int:
+        if not isinstance(sample, (tuple, list)) or len(sample) < 2:
+            raise TypeError("Signal dataset samples must contain mixture and target tensors")
+        mixture, target = sample[:2]
+        if not torch.is_tensor(mixture) or not torch.is_tensor(target):
+            raise TypeError("Signal dataset mixture and target must be torch tensors")
+        if mixture.size(-1) != target.size(-1):
+            raise ValueError(
+                f"Mixture/target length mismatch: {mixture.size(-1)} vs {target.size(-1)}"
+            )
+        return int(mixture.size(-1))
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def set_epoch(self, epoch: int):
+        if hasattr(self.dataset, "set_epoch"):
+            self.dataset.set_epoch(epoch)
+
+    def _adapt(self, tensor: torch.Tensor) -> torch.Tensor:
+        length = int(tensor.size(-1))
+        if length == self.target_length:
+            return tensor
+        if length > self.target_length:
+            # Center cropping is deterministic and preserves train/resume reproducibility.
+            start = (length - self.target_length) // 2
+            return tensor[..., start:start + self.target_length]
+        if self.policy != "pad_crop":
+            raise ValueError(
+                f"Waveform length {length} is shorter than target {self.target_length}"
+            )
+        return torch.nn.functional.pad(tensor, (0, self.target_length - length))
+
+    def __getitem__(self, index):
+        sample = self.dataset[index]
+        mixture, target, *extras = sample
+        return (self._adapt(mixture), self._adapt(target), *extras)
+
+
+class BalancedConcatDataset(Dataset):
+    """Deterministically repeat domains to compute a macro-style validation loss."""
+
+    def __init__(self, datasets: List[Dataset]):
+        if not datasets or any(len(dataset) == 0 for dataset in datasets):
+            raise ValueError("BalancedConcatDataset requires non-empty datasets")
+        self.datasets = list(datasets)
+        self.domain_length = max(len(dataset) for dataset in self.datasets)
+
+    def __len__(self):
+        return self.domain_length * len(self.datasets)
+
+    def __getitem__(self, index):
+        domain_index = int(index) % len(self.datasets)
+        within_domain_index = int(index) // len(self.datasets)
+        dataset = self.datasets[domain_index]
+        return dataset[within_domain_index % len(dataset)]
+
+
+def create_multidataset_data_loaders(
+    batch_size: int,
+    data_choices: List[str],
+    num_sources: int = 2,
+    target_length: int = 4096,
+    sampling: str = "balanced",
+    dataset_weights: Optional[List[float]] = None,
+    length_policy: str = "strict",
+    **loader_kwargs,
+) -> Tuple[DataLoader, DataLoader, Dict[float, DataLoader]]:
+    """Create joint-pretraining loaders without hard-coding dataset names.
+
+    Each dataset is split independently before concatenation, preventing a
+    dataset with more files from changing another dataset's split. Balanced
+    sampling gives every dataset equal expected probability per training draw.
+    """
+    choices = [_normalize_matlab_data_choice(str(choice)) for choice in data_choices]
+    if len(choices) < 2:
+        raise ValueError("Joint pretraining requires at least two data choices")
+    if len(set(choices)) != len(choices):
+        raise ValueError(f"Duplicate joint-pretraining datasets are not allowed: {choices}")
+    if sampling not in {"balanced", "proportional"}:
+        raise ValueError("sampling must be 'balanced' or 'proportional'")
+
+    if dataset_weights is not None:
+        if len(dataset_weights) != len(choices):
+            raise ValueError(
+                "--pretrain_dataset_weights must have one value per pretraining dataset"
+            )
+        weights = [float(weight) for weight in dataset_weights]
+        if any(weight <= 0 for weight in weights):
+            raise ValueError("All pretraining dataset weights must be positive")
+    else:
+        weights = [1.0] * len(choices)
+
+    train_datasets = []
+    val_datasets = []
+    snr_datasets = defaultdict(list)
+    dataset_sizes = []
+    for choice in choices:
+        # Keep each domain's split identical to a later single-domain fine-tuning
+        # run. Position-dependent seeds can move joint-training samples into the
+        # standalone test split when the same domain is fine-tuned afterwards.
+        per_dataset_kwargs = dict(loader_kwargs)
+        per_dataset_kwargs["seed"] = int(loader_kwargs.get("seed", 42))
+        train_loader, val_loader, snr_loaders = create_data_loaders(
+            batch_size=batch_size,
+            data_choice=choice,
+            num_sources=num_sources,
+            **per_dataset_kwargs,
+        )
+        train_dataset = FixedLengthSignalDataset(
+            train_loader.dataset, target_length=target_length, policy=length_policy,
+        )
+        val_dataset = FixedLengthSignalDataset(
+            val_loader.dataset, target_length=target_length, policy=length_policy,
+        )
+        train_datasets.append(train_dataset)
+        val_datasets.append(val_dataset)
+        dataset_sizes.append(len(train_dataset))
+        for snr, loader in snr_loaders.items():
+            snr_datasets[float(snr)].append(
+                FixedLengthSignalDataset(
+                    loader.dataset, target_length=target_length, policy=length_policy,
+                )
+            )
+
+    train_dataset = ConcatDataset(train_datasets)
+    val_dataset = (
+        BalancedConcatDataset(val_datasets)
+        if sampling == "balanced"
+        else ConcatDataset(val_datasets)
+    )
+    seed = int(loader_kwargs.get("seed", 42))
+    common_loader_kwargs = {
+        "batch_size": batch_size,
+        "num_workers": int(loader_kwargs.get("num_workers", 16)),
+        "pin_memory": bool(loader_kwargs.get("pin_memory", True)),
+        "worker_init_fn": _seed_worker,
+    }
+
+    if sampling == "balanced" or dataset_weights is not None:
+        sample_weights = []
+        for size, dataset_weight in zip(dataset_sizes, weights):
+            per_sample_weight = dataset_weight / float(size)
+            sample_weights.extend([per_sample_weight] * size)
+        sampler = WeightedRandomSampler(
+            sample_weights,
+            num_samples=sum(dataset_sizes),
+            replacement=True,
+            generator=torch.Generator().manual_seed(seed),
+        )
+        train_loader = DataLoader(train_dataset, sampler=sampler, **common_loader_kwargs)
+    else:
+        train_loader = DataLoader(
+            train_dataset,
+            shuffle=True,
+            generator=torch.Generator().manual_seed(seed),
+            **common_loader_kwargs,
+        )
+
+    val_loader = DataLoader(
+        val_dataset,
+        shuffle=False,
+        generator=torch.Generator().manual_seed(seed + 1),
+        **common_loader_kwargs,
+    )
+    combined_snr_loaders = {
+        snr: DataLoader(
+            ConcatDataset(datasets),
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=common_loader_kwargs["num_workers"],
+            pin_memory=common_loader_kwargs["pin_memory"],
+            worker_init_fn=_seed_worker,
+        )
+        for snr, datasets in sorted(snr_datasets.items())
+    }
+
+    print("Joint pretraining datasets:")
+    for choice, size, weight in zip(choices, dataset_sizes, weights):
+        print(f"  {choice}: train={size}, sampling_weight={weight:g}")
+    print(
+        f"  policy={sampling}, length={target_length}, length_policy={length_policy}, "
+        f"combined_train={len(train_dataset)}, combined_val={len(val_dataset)}"
+    )
+    return train_loader, val_loader, combined_snr_loaders
+
+
 def _create_matlab_dataset(
     data_choice: str,
     num_sources: int,
     matlab_data_root: Optional[Union[str, Path]] = None,
     file_indices: Optional[List[int]] = None,
+    return_sync_metadata: bool = False,
 ) -> MATLABSignalDataset:
     """Create MATLAB dataset.
 
@@ -1555,6 +2130,82 @@ def _create_matlab_dataset(
         current_token = _dataset_token_from_pattern(pattern)
         return pattern.replace(current_token, dataset_token, 1)
 
+    def _normalise_filename_token(token: str) -> str:
+        """Normalize harmless spelling variants used by the MATLAB datasets."""
+        token = str(token).strip().lower()
+        token = re.sub(r"qpsk[-+]?16apsk", "qpsk16apsk", token)
+        return token.replace("+", "")
+
+    def _scan_matlab_paths(
+        pattern: str,
+        search_base_path: Path,
+        snr_range,
+        file_range,
+    ) -> Optional[List[str]]:
+        """Resolve files by parsing names instead of assuming one spelling.
+
+        Generated MATLAB collections use both
+        ``QPSK+16APSK-B``/``QPSK16APSK-B`` and
+        ``SNR=-10dB``/``SNR-10dB``.  Indexing parsed files by
+        ``(file index, SNR)`` keeps those cosmetic differences out of the
+        loader while preserving the requested sample order.
+        """
+        if pattern.startswith("target/"):
+            subdir = "target"
+        elif pattern.startswith("mixture/"):
+            subdir = "mixture"
+        else:
+            subdir = ""
+        if "_Dataset_target_" in pattern:
+            variant = "target"
+        elif "_Dataset_mixed_" in pattern:
+            variant = "mixed"
+        else:
+            return None
+
+        token_candidates = dataset_token_candidates or [_dataset_token_from_pattern(pattern)]
+        wanted_tokens = {
+            _normalise_filename_token(token) for token in token_candidates
+        }
+        file_ids = [int(index) for index in file_range]
+        snr_values = [float(snr) for snr in snr_range]
+        requested = [
+            (index, round(snr, 6))
+            for snr in snr_values
+            for index in file_ids
+        ]
+        requested_set = set(requested)
+        search_dir = search_base_path / subdir if subdir else search_base_path
+        if not search_dir.is_dir():
+            return None
+
+        filename_re = re.compile(
+            r"^(?P<prefix>.+?)_Dataset_(?P<variant>target|mixed)_"
+            r"(?P<index>\d+)_SNR=?"
+            r"(?P<snr>[+-]?\d+(?:\.\d+)?)dB\.mat$"
+        )
+        resolved = {}
+        for path in sorted(search_dir.glob("*.mat"), key=lambda item: item.name):
+            match = filename_re.match(path.name)
+            if not match or match.group("variant") != variant:
+                continue
+            prefix = match.group("prefix")
+            source_prefix = f"{num_sources}Source_"
+            if prefix.startswith(source_prefix):
+                prefix = prefix[len(source_prefix):]
+            if _normalise_filename_token(prefix) not in wanted_tokens:
+                continue
+            key = (
+                int(match.group("index")),
+                round(float(match.group("snr")), 6),
+            )
+            if key in requested_set and key not in resolved:
+                resolved[key] = path
+
+        if any(key not in resolved for key in requested):
+            return None
+        return [str(resolved[key]) for key in requested]
+
     def _discover_matlab_paths(pattern: str, search_base_path: Path) -> List[str]:
         subdir = "target" if pattern.startswith("target/") else "mixture"
         variant = "target" if "target" in pattern else "mixed"
@@ -1571,6 +2222,19 @@ def _create_matlab_dataset(
     def _resolve_paths(pattern: str, snr_range, file_range) -> List[str]:
         token_candidates = dataset_token_candidates or [_dataset_token_from_pattern(pattern)]
         for search_base_path in base_path_candidates:
+            scanned = _scan_matlab_paths(
+                pattern,
+                search_base_path,
+                snr_range,
+                file_range,
+            )
+            if scanned is not None:
+                print(
+                    f"[MATLAB] Resolved {len(scanned)} {pattern.split('/')[-1].split('_Dataset_')[1].split('_')[0]} "
+                    "files by filename scan."
+                )
+                return scanned
+
             for token in token_candidates:
                 candidate_pattern = _pattern_with_dataset_token(pattern, token)
 
@@ -1621,7 +2285,13 @@ def _create_matlab_dataset(
     all_signal_paths = _resolve_paths(config["signal_pattern"], config["snr_range"], effective_file_range)
     all_mixture_paths = _resolve_paths(config["mixture_pattern"], config["snr_range"], effective_file_range)
     
-    dataset = MATLABSignalDataset(all_signal_paths, all_mixture_paths, data_choice, num_sources)
+    dataset = MATLABSignalDataset(
+        all_signal_paths,
+        all_mixture_paths,
+        data_choice,
+        num_sources,
+        return_sync_metadata=return_sync_metadata,
+    )
 
     # --- Auto-detect and load bits for BER evaluation ---
     bits_dir = base_path / "bits"
@@ -1701,36 +2371,36 @@ def _create_public_dataset(
     
     if data_choice == "2018":
         signal_paths = {
-            'BPSK': [str(data_root / "RML2018" / "BPSK" / f'BPSK_SNR={snr}dB.mat')
+            'BPSK': [str(data_root / "RML2018" / "BPSK" / f'BPSK_SNR{snr}dB.mat')
                     for snr in range(-10, 31, 4)],
-            'QPSK': [str(data_root / "RML2018" / "QPSK" / f'QPSK_SNR={snr}dB.mat')
+            'QPSK': [str(data_root / "RML2018" / "QPSK" / f'QPSK_SNR{snr}dB.mat')
                     for snr in range(-10, 31, 4)]
         }
         
     elif data_choice == "TorchSig":
         snr_list = [-10, -6, -2, 2, 6, 10, 14, 18, 22, 26, 30]
         signal_paths = {
-            'BPSK': [str(data_root / "TorchSig" / f"bpsk_SNR={snr}dB.mat")
+            'BPSK': [str(data_root / "TorchSig" / f"bpsk_SNR{snr}dB.mat")
                     for snr in snr_list],
-            'QPSK': [str(data_root / "TorchSig" / f"qpsk_SNR={snr}dB.mat")
+            'QPSK': [str(data_root / "TorchSig" / f"qpsk_SNR{snr}dB.mat")
                     for snr in snr_list]
         }
         
     elif data_choice == "2016":
         snr_list = list(range(-10, 19, 2))
         signal_paths = {
-            'BPSK': [str(data_root / "RML2016" / "BPSK" / f"MATBPSK_SNR={snr}dB.mat")
+            'BPSK': [str(data_root / "RML2016" / "BPSK" / f"MATBPSK_SNR{snr}dB.mat")
                     for snr in snr_list],
-            'QPSK': [str(data_root / "RML2016" / "QPSK" / f"MATQPSK_SNR={snr}dB.mat")
+            'QPSK': [str(data_root / "RML2016" / "QPSK" / f"MATQPSK_SNR{snr}dB.mat")
                     for snr in snr_list]
         }
         
         # For multi-source cases, add more modulation types
         if num_sources > 2:
             signal_paths.update({
-                '8PSK': [str(data_root / "RML2016" / f"MAT8PSK_SNR={snr}dB.mat")
+                '8PSK': [str(data_root / "RML2016" / f"MAT8PSK_SNR{snr}dB.mat")
                         for snr in snr_list],
-                '16QAM': [str(data_root / "RML2016" / f"MAT16QAM_SNR={snr}dB.mat")
+                '16QAM': [str(data_root / "RML2016" / f"MAT16QAM_SNR{snr}dB.mat")
                          for snr in snr_list]
             })
     

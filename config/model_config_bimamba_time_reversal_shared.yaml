@@ -1,0 +1,19 @@
+# Stage 217: full bidirectional context with one shared Mamba core per layer.
+model_config:
+  model_type: bimamba_time_reversal_shared
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  bimamba_apply_stages: [1, 3]
+  bimamba_residual_scale_init: 1.0
+  bimamba_boundary_tau_init: 16.0
+  bimamba_shrinkage_init: 0.02
+  bimamba_fusion_eps: 1.0e-6
+

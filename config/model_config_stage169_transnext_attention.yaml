@@ -1,0 +1,21 @@
+model_config:
+  model_type: resunet1d_transnext_attention_bottleneck
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  use_complex_mask: false
+
+  # TransNeXt, CVPR 2024: https://github.com/DaiShiResearch/TransNeXt
+  attention_heads: 8
+  sr_ratio: 4
+  mlp_ratio: 2.0
+  attention_dropout: 0.05
+  projection_dropout: 0.0
+  bottleneck_scale_init: 0.05

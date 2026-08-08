@@ -1,0 +1,51 @@
+# Stage 238: joint QAM receiver, complex-channel estimation and turbo IC unfolding.
+model_config:
+  model_type: iqumamba_qam_turbo_unfold
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Three alternating receiver/channel/interference-cancellation updates.
+  qam_turbo_iterations: 3
+  qam_turbo_hidden_channels: 32
+  qam_turbo_kernel_size: 7
+
+  # Exact rectangular MATLAB qammod geometries: 16x8 for 128-QAM.
+  qam_turbo_orders: [16, 64, 128]
+  qam_turbo_sps: 20
+  qam_turbo_rrc_rolloff: 0.35
+  qam_turbo_rrc_span: 20
+  qam_turbo_posterior_temperature: 18.0
+  qam_turbo_route_temperature: 10.0
+
+  # Alternating short complex-channel solve handles independent source/mixture
+  # normalization in the MATLAB generators. Detaching the closed-form solution
+  # gives a stable block-coordinate update while preserving residual gradients.
+  qam_turbo_channel_taps: 3
+  qam_turbo_channel_ridge: 1.0e-3
+  qam_turbo_detach_channel_solve: true
+
+  # Explicit data/QAM updates are intentionally active at initialization.
+  qam_turbo_data_step_init: 0.15
+  qam_turbo_prior_step_init: 0.08
+  qam_turbo_learned_step_init: 0.05
+  qam_turbo_eps: 1.0e-6
+
+  # Stage-owned joint objective. The ordinary PIT loss remains the main term.
+  qam_turbo_joint_loss_enable: true
+  qam_turbo_mixture_loss_weight: 0.15
+  qam_turbo_qam_loss_weight: 0.03
+  qam_turbo_independence_loss_weight: 0.02
+  qam_turbo_intermediate_loss_weight: 0.20
+  qam_turbo_route_entropy_weight: 0.002
+
+  # Avoid stacking the failed output-side priors on this experiment.
+  qam_reg_weight: 0.0
+  receiver_symbol_weight: 0.0
+  sep_constraint_weight: 0.0

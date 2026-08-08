@@ -1,0 +1,27 @@
+model_config:
+  model_type: bimamba_mcproj
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Mixture-consistency projection (Wisdom et al., arXiv:1811.08521):
+  #   sum_k s_hat_k' = x_mix
+  # The correction is weighted by instantaneous source energy so dominant
+  # sources do not absorb the residual as bluntly as in a uniform projection.
+  mc_weight_mode: energy
+  mc_weight_power: 1.0
+  mc_min_weight: 1.0e-3
+  mc_eps: 1.0e-8
+  mc_detach_weights: false
+  mc_project_deep_supervision: true
+  # Training-time hard projection often over-constrains early blind separation.
+  # Keep it off by default during optimization and turn it on for evaluation.
+  mc_apply_train: false
+  mc_apply_eval: true

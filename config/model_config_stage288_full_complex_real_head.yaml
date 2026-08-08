@@ -1,0 +1,17 @@
+# Stage 288: Stage-286 fully complex 20-block feature extractor followed by
+# the unconstrained real skip/output head used by Stage 283.
+#
+# This is the missing head-only ablation: the backbone is fully complex, while
+# the final source slots may mix real/imaginary features freely.
+model_config:
+  model_type: icassp_complex_wavenet
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  complex_layers: 20
+  strict_complex_output: false
+  use_conjugate_adapter: false
+  complex_norm_enable: false
+  complex_norm_eps: 1.0e-6

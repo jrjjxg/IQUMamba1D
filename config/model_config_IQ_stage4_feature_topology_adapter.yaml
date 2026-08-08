@@ -1,0 +1,23 @@
+# IQUMamba1D Stage 194 - feature-domain topology adapter.
+# Opposed ablation: model-side feature adapter only, no auxiliary loss by default.
+model_config:
+
+  model_type: iqumamba_feature_topology_adapter
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  feature_topology_hidden_channels: 16
+  feature_topology_kernel_size: 7
+  feature_topology_scale_init: 0.01
+  feature_topology_apply_stages: [1, 2, 3]
+  feature_topology_zero_init: true
+
+  topology_aux_weight: 0.0
+  sep_constraint_weight: 0.0

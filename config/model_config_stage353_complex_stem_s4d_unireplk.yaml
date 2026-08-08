@@ -1,0 +1,23 @@
+# Stage 353: Stage-290 strict-complex IQ stem + Stage-336 S4D-Lin memory
+# + Stage-310 real UniRepLK residual blocks after encoder stages 0/1/2.
+model_config:
+  model_type: iqumamba_stage4_s4d_unireplk
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  complex_stem_enable: true
+  complex_norm_eps: 1.0e-6
+  memory_d_state: 64
+  memory_dropout: 0.0
+  memory_dt_min: 0.001
+  memory_dt_max: 0.1
+  rf_residual_scale_init: 0.05
+  unireplk_large_kernel: 17
+  unireplk_ffn_factor: 4
+  unireplk_layer_scale: 1.0e-6

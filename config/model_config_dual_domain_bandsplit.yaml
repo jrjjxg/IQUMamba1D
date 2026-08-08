@@ -1,0 +1,26 @@
+model_config:
+
+  model_type: dual_domain_bandsplit
+  input_channels: 2
+  n_stages: 6
+  features_per_stage: [32, 64, 128, 256, 320, 320]
+  kernel_sizes: [3, 3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2, 2]
+  n_conv_per_stage: [1, 1, 1, 1, 1, 1]
+  num_classes: 4
+  n_conv_per_stage_decoder: [1, 1, 1, 1, 1]
+  deep_supervision: false
+
+  dual_domain_config:
+    n_fft: 256
+    hop_length: 64
+    win_length: 256
+    freq_features_per_stage: [16, 32, 64, 128, 160, 160]
+    cross_attn_heads: 4
+    cross_attn_dropout: 0.1
+    # Band-Split specific
+    n_bands: 8
+    hidden_dim: 128
+    n_band_mamba_layers: 2
+    # Selective fusion: only cross-attend at deeper stages (V4 stability)
+    fusion_start_stage: 2

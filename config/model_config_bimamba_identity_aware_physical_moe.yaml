@@ -1,0 +1,60 @@
+# Stage 255: identity/global/physical/joint residual experts with identity prior.
+model_config:
+  model_type: bimamba_identity_aware_physical_moe
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  fusion_query_stage: 2
+  fusion_global_stage: 3
+  fusion_global_kv_tokens: 64
+  fusion_num_heads: 4
+  fusion_dropout: 0.0
+  fusion_channel_scale_init: 0.1
+  fusion_channel_scale_max: 0.5
+  fusion_bottleneck_num_heads: 4
+  fusion_bottleneck_dropout: 0.0
+  fusion_bottleneck_scale_init: 0.1
+  fusion_router_hidden: 64
+  fusion_expert_prior: [0.7, 0.1, 0.1, 0.1]
+  # Multi-source router: physical/query/global/delta agreement + mixture noise embedding.
+  fusion_condition_hidden: 16
+  fusion_condition_embedding: 16
+  fusion_trust_penalty_init: 0.1
+  fusion_trust_penalty_enable: true
+  fusion_condition_routing_enable: true
+  fusion_counterfactual_enable: true
+  # Aux output is automatically enabled when condition or counterfactual routing is active.
+  fusion_return_route_aux: false
+  # Four counterfactual decoder passes are training-only and sampled to control cost.
+  fusion_route_candidate_probability: 0.25
+  physical_cyclic_lags: [0, 1, 2, 4, 8]
+  physical_polyphase_branches: 8
+  physical_symbol_orders: [2, 4, 8]
+  physical_min_cyclic_freq: 0.015625
+  physical_max_cyclic_freq: 0.125
+  physical_cyclic_temperature: 0.25
+
+  # MEAN + Self-REF: detached per-expert quality targets supervise the router.
+  evidence_moe_route_supervision_enable: true
+  evidence_moe_route_loss_weight: 0.05
+  evidence_moe_route_target_temperature: 0.25
+
+  # NCMoE: auxiliary mixture-only SNR representation and high-to-low curriculum.
+  stage255_snr_aux_weight: 0.02
+  stage255_snr_aux_min_db: -10.0
+  stage255_snr_aux_max_db: 30.0
+  stage255_snr_curriculum_enable: true
+  stage255_snr_curriculum_start_db: 10.0
+  stage255_snr_curriculum_end_db: -10.0
+  stage255_snr_curriculum_fraction: 0.5
+
+  # MEAN-style router-only adaptation followed by low-LR joint fine-tuning.
+  stage255_expert_pretrain_epochs: 5
+  stage255_router_warmup_epochs: 5
+  stage255_router_joint_lr_scale: 0.25

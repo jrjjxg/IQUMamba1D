@@ -1,0 +1,30 @@
+model_config:
+  model_type: resunet1d_uric
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Unrolled residual interference-cancellation (URIC) head
+  # Backbone: pure convolutional ResUNet1D
+  # Refinement:
+  #   r_k^(t) = x_mix - sum_{j!=k} s_j^(t)
+  #   s_k^(t+1) = s_k^(t) + alpha_t * Delta_k^(t)
+  ric_num_steps: 3
+  ric_hidden_channels: 48
+  ric_kernel_size: 7
+  ric_dropout: 0.0
+  ric_tied_steps: true
+  ric_step_init: 0.5
+  ric_return_intermediate: false
+  ric_update_block_type: conv        # conv | dilated_gated | cross_attention
+  ric_dilations: [1, 2, 4]           # used by dilated_gated
+  ric_num_heads: 4                   # used by cross_attention
+  ric_attention_stride: 1            # >1 downsamples K/V context to save memory
+  ric_ffn_multiplier: 2              # used by cross_attention

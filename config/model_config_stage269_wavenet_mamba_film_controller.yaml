@@ -1,0 +1,26 @@
+# Stage 269: Mamba is a controller, not a direct waveform-feature residual.
+# Blocks 1--10 build the local WaveNet state; a stride-4 Mamba summarizes it
+# and emits per-frame FiLM, residual, and skip gates for blocks 11--20.
+model_config:
+  model_type: icassp_wavenet_mamba_film_controller
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_controller_hidden: 128
+  mamba_controller_dropout: 0.0
+
+  # Gates are 1 + bound * tanh(control); FiLM is similarly bounded.
+  # The controller output head is zero-initialized, so this starts as WaveNet.
+  mamba_control_gate_max_delta: 0.5
+  mamba_control_film_max_delta: 0.1

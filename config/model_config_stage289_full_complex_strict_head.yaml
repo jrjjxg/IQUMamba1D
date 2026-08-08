@@ -1,0 +1,15 @@
+# Stage 289: adjacent-number control for Stage 288. The 20-block backbone and
+# all training-independent settings are identical, but the skip/output head is
+# strictly complex. This intentionally reproduces the Stage-286 topology.
+model_config:
+  model_type: icassp_complex_wavenet
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  complex_layers: 20
+  strict_complex_output: true
+  use_conjugate_adapter: false
+  complex_norm_enable: false
+  complex_norm_eps: 1.0e-6

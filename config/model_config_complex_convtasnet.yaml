@@ -1,0 +1,27 @@
+model_config:
+
+  model_type: complex_convtasnet
+  input_channels: 2
+  num_classes: 4
+
+  complex_convtasnet_config:
+    n_srcs: 2
+    feature_channels: 64
+    kernel_size: 9
+    hidden_dim: 128
+    bottleneck_dim: 128
+    num_repeats: 3
+    blocks_per_repeat: 8
+    tcn_kernel_size: 3
+    dropout: 0.0
+    mask_bound: 4.0
+    mask_sum_constraint: true
+    identity_init: true
+    mask_head_zero_init: true
+
+    apply_projection: true
+    mc_weight_mode: uniform
+    mc_weight_power: 1.0
+    mc_min_weight: 0.0
+    mc_eps: 0.00000001
+    mc_detach_weights: false

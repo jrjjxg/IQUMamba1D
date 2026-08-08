@@ -1,0 +1,16 @@
+# Stage 221: Stage 219 with a bounded and stochastically dropped shallow skip.
+model_config:
+  model_type: iqumamba_pr_restricted_skip
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  shallow_skip_init: 0.25
+  shallow_skip_drop_probability: 0.25
+

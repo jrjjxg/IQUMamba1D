@@ -1,0 +1,28 @@
+# Stage 265: retain the successful Stage-261 local unidirectional Mamba path,
+# then add Stage-235-style compressed cross-scale K/V from a separate low-rate
+# bidirectional Mamba global-memory branch.
+model_config:
+  model_type: icassp_wavenet_interleaved_crossscale_bimamba
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  # Unchanged Stage-261 local context path.
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01
+
+  # Stage-235-style low-rate bidirectional global memory and compressed K/V.
+  cross_scale_kv_tokens: 64
+  cross_scale_num_heads: 4
+  cross_scale_dropout: 0.0
+  cross_scale_residual_scale_init: 0.01

@@ -1,0 +1,23 @@
+# RF Challenge Stage 358: TUB RFDEMUCS waveform-estimation reproduction.
+# The case adapter changes H/S/U to 80/4/4 only for QPSK+CommSignal3.
+model_config:
+  model_type: rfchallenge_rfdemucs
+  input_channels: 2
+  num_classes: 2
+  deep_supervision: false
+  rfdemucs_hidden: 64
+  rfdemucs_depth: 5
+  rfdemucs_kernel_size: 8
+  rfdemucs_stride: 2
+  rfdemucs_resample: 2
+  rfdemucs_growth: 2.0
+  rfdemucs_max_hidden: 10000
+  rfdemucs_normalize: false
+  rfdemucs_glu: true
+  rfdemucs_rescale: 0.1
+  rfdemucs_lstm_layers: 2
+  rfdemucs_sinc_zeros: 56
+  rfdemucs_paper_case_settings: true
+  rfdemucs_default_learning_rate: 3.0e-5
+  rfdemucs_qpsk_commsignal2_learning_rate: 3.0e-4
+  rfdemucs_qpsk_commsignal3_learning_rate: 3.0e-4

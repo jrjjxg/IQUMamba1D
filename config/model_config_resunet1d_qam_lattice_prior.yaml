@@ -1,0 +1,32 @@
+# ==============================================================================
+# IQUResUNet1D QAM Lattice Prior Configuration (Stage 132)
+# ==============================================================================
+
+# Core architecture parameters
+input_size: 4096
+input_channels: 2
+n_stages: 5
+features_per_stage: [32, 64, 128, 256, 320]
+kernel_sizes: [3, 3, 3, 3, 3]
+strides: [1, 2, 2, 2, 2]
+n_conv_per_stage: [2, 2, 2, 2, 2]
+num_classes: 4
+n_conv_per_stage_decoder: [2, 2, 2, 2]
+
+# General enhancements
+deep_supervision: False
+
+# ==============================================================================
+# QAM Lattice Prior Specific Parameters
+# ==============================================================================
+# Which QAM orders to expect. 
+# 4 = 16QAM (2x2 I/Q levels)
+# 8 = 64QAM (4x4 I/Q levels)
+# 16 = 256QAM (8x8 I/Q levels)
+qam_axis_level_bank: [4, 8, 16]
+
+# QAM Residual Scale Settings
+# Similar to Stage 79/123, limits the max power of the prior
+qam_max_scale: 0.35
+# Initial scale before sigmoid (e.g. -1.0 means scale ~ 0.09)
+qam_scale_init: -1.0

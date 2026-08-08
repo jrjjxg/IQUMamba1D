@@ -1,0 +1,23 @@
+# A3-isolated: Stage 295 with a bounded RF cyclostationary pole bank.
+model_config:
+  model_type: iqumamba_rf_mamba3
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  mamba_d_state: 8
+  mamba_d_conv: 4
+  mamba_expand: 2
+  scan_backend: auto
+  scan_checkpoint: true
+  mamba_discretization: exponential_euler
+  cyclic_theta_enable: true
+  # Cycles per original input sample: DC, signed 1/64, 1/32, 1/20, and 1/40.
+  cyclic_frequencies: [0.0, 0.015625, -0.015625, 0.03125, -0.03125, 0.05, -0.05, 0.025]
+  cyclic_max_frequency_delta: 0.01
+  reliability_enable: false

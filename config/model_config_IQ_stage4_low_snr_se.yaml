@@ -1,0 +1,35 @@
+# IQUMamba1D Stage 199 - low-SNR enhancement front-end plus stage-4 backbone.
+model_config:
+
+  model_type: iqumamba_low_snr_se
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Low-SNR enhancement:
+  #   noisy mixture -> clean_mixture_hat + residual noise estimate.
+  # The enhancer is near-identity at initialization so this stage starts close
+  # to the original stage-4 IQUMamba baseline.
+  low_snr_se_hidden_channels: 24
+  low_snr_se_kernel_size: 9
+  low_snr_se_scale_init: 0.01
+  low_snr_se_zero_init: true
+
+  # Noisy-mixture consistency after separation:
+  #   source_1 + source_2 + residual_noise ~= input_mixture.
+  low_snr_se_use_projection: true
+  low_snr_se_project_during_train: true
+  low_snr_se_project_during_eval: true
+  low_snr_se_source_weight: 0.25
+  low_snr_se_noise_weight: 1.0
+  low_snr_se_eps: 1.0e-8
+
+  # Keep false for ordinary training/evaluation because existing losses expect
+  # the separation tensor. Enable only for diagnostics or auxiliary-loss work.
+  low_snr_se_return_aux: false

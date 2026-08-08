@@ -1,0 +1,20 @@
+model_config:
+  model_type: sepbamba_unet1d
+
+  input_channels: 2
+  num_classes: 4
+  features_per_stage: [32, 64, 128, 256]
+  
+  # Bamba block config
+  d_state: 16
+  d_conv: 4
+  expand: 2
+  fusion: proj # sum | proj
+  num_layers: 1
+  residual_scale_init: 0.1
+  
+  # Stage-specific Bamba activation: [stage0, stage1, stage2, stage3]
+  use_bamba: [false, true, true, true]
+  
+  # Normalization type: instance | group | layer | none
+  norm_type: instance

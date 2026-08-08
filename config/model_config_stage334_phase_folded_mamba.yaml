@@ -1,0 +1,31 @@
+# Stage 334: Stage 4 plus blind multi-hypothesis phase-folded complex Mamba.
+model_config:
+  model_type: iqumamba_phase_folded_mamba
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Candidate symbol periods are in original input samples. Each candidate is
+  # locally refined to a fractional period from mixture envelope evidence.
+  phase_fold_candidate_periods: [8, 12, 16, 24, 32]
+  phase_fold_local_frequency_radius: 0.20
+  phase_fold_evidence_temperature: 0.10
+  phase_fold_frequency_temperature: 0.25
+  phase_fold_null_logit_init: 1.0
+
+  phase_fold_hidden_channels: 16
+  phase_fold_num_routers: 2
+  phase_fold_d_state: 4
+  phase_fold_d_conv: 3
+  phase_fold_expand: 1
+  phase_fold_scan_checkpoint: true
+  phase_fold_scan_backend: auto
+  # Batch-level sparse MoE routing: evaluate only the three strongest periods.
+  phase_fold_candidate_top_k: 3
+  phase_fold_zero_init: true

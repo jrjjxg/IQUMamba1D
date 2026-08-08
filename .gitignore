@@ -1,0 +1,11 @@
+.firecrawl/
+__pycache__/
+data/
+dataset_gen/
+docs/
+pipeline_results/
+scratch/
+tmp/
+pretrain_fsq_tokenizer.py
+unknown_source_main.py
+对话.md

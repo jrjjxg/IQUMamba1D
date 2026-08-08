@@ -1,0 +1,20 @@
+# IQUMamba1D_BlindMultiRateInput - stage-4 IQUMamba with a mixture-only
+# multi-rate near-identity input adapter.
+model_config:
+
+  model_type: iqumamba_blind_multirate_input
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  multirate_hidden_channels: 8
+  multirate_kernel_sizes: [5, 9, 17, 33]
+  multirate_dilations: [1, 2, 4, 8]
+  multirate_scale_init: 0.01
+  multirate_zero_init: true

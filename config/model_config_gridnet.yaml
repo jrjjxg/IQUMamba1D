@@ -1,0 +1,12 @@
+model_config:
+  model_type: iq_conformer_gridnet
+  n_srcs: 2
+  n_fft: 256
+  hop_length: 64
+  win_length: 256
+  n_layers: 4  # TF-GridNet-lite
+  hidden_channels: 64
+  attn_n_head: 4
+  emb_dim: 32
+  emb_ks: 4
+  emb_hs: 1

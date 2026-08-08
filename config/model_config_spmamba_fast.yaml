@@ -1,0 +1,26 @@
+model_config:
+  model_type: spmamba
+
+  input_channels: 2
+  num_classes: 4
+
+  spmamba_config:
+    n_srcs: 2
+    n_fft: 128          # 256→128: TF图缩小一半，速度提升约2×
+    hop_length: 32      # 保持 hop=n_fft/4
+    win_length: 128
+    center: true
+    normalize_input: true
+    eps: 1.0e-8
+    # 架构参数（精简版）
+    n_layers: 2         # 4→2层: 速度提升约2×
+    hidden_channels: 64 # 128→64: 参数量减少4×
+    attn_n_head: 4
+    attn_qk_output_channel: 4
+    emb_dim: 32         # 48→32
+    emb_ks: 4
+    emb_hs: 1
+    # Mamba 参数
+    d_state: 8          # 16→8
+    d_conv: 4
+    mamba_expand: 2

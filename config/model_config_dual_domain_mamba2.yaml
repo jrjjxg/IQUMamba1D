@@ -1,0 +1,25 @@
+model_config:
+  model_type: dual_domain_mamba2
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  dual_domain_config:
+    # STFT parameters
+    n_fft: 256
+    hop_length: 64
+    win_length: 256
+    # Frequency tower channels (per stage)
+    freq_features_per_stage: [16, 32, 64, 128]
+    # Cross-attention settings
+    cross_attn_heads: 4
+    cross_attn_dropout: 0.0
+    # Mamba-2 specific (SSD framework)
+    d_state: 64 # Mamba2 supports larger state dim (64 vs 16)
+    headdim: 32 # Head dimension (replaces 'expand' from Mamba1)

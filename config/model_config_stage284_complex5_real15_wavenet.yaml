@@ -1,0 +1,14 @@
+# Stage 284 (C2): strict complex stem + first 5 complex WaveNet blocks, then
+# 15 ordinary real WaveNet blocks. No Mamba, router, or auxiliary branch.
+model_config:
+  model_type: icassp_complex_wavenet
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  complex_layers: 5
+  strict_complex_output: false
+  use_conjugate_adapter: false
+  complex_norm_enable: false
+  complex_norm_eps: 1.0e-6

@@ -1,0 +1,25 @@
+# Stage 281: Stage 280 plus a widely-linear complex stem Wz + Vz*.
+# The conjugate branch is zero-initialized for an equivariant starting point.
+model_config:
+  model_type: icassp_symbol_clock_wavenet
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  pre_residual_layers: 10
+  pre_dilation_cycle_length: 10
+  adaptive_layers: 5
+  symbol_candidate_periods: [2, 4, 8, 16, 32]
+  symbol_dilation_multipliers: [1, 2, 4, 8, 16]
+  symbol_max_dilation: 512
+  use_widely_linear_stem: true
+  use_temporal_controls: false
+  physical_token_channels: 64
+  physical_chunk_size: 64
+  physical_chunk_hop: 32
+  physical_lags: [1, 2, 4, 8, 16, 32]
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  symbol_evidence_strength: 1.0
+  symbol_router_temperature: 0.35

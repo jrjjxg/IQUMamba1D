@@ -1,0 +1,13 @@
+# Stage 273: direct architectural control for Stage 261.
+# Preserve Stage 261's 20 WaveNet blocks and dilation schedule, but remove the
+# 128 -> 64 -> stride-4 UniMamba -> upsample -> residual-context path entirely.
+model_config:
+
+  model_type: icassp_baseline_wavenet
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10

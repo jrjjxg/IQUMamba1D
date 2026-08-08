@@ -1,0 +1,16 @@
+model_config:
+  model_type: resunet1d_skip_enhanced_lssg_refined
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+  use_complex_mask: false
+
+  # Skip mode
+  skip_mode: "lssg_refined"

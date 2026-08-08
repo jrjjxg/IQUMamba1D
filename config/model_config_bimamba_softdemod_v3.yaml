@@ -1,0 +1,32 @@
+# IQUBiMamba1D_SoftDemodV3 - stronger receiver-structured Joint BSS + Soft Demodulation
+#
+# This version extends the V2 receiver-aware demapper with:
+#   1. multi-offset timing-hypothesis fusion
+#   2. explicit phase correction inside the adapter
+#   3. symbol-level self-attention after recurrent context modeling
+
+model_config:
+  model_type: bimamba_softdemod_v3
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  demod_num_bits: 615
+  demod_bits_per_symbol: 3
+  demod_hidden: 64
+  demod_rnn_hidden: 128
+  demod_dropout: 0.2
+  demod_adapter_hidden: 128
+  demod_symbol_hidden: 160
+  demod_context_layers: 2
+  demod_symbol_logit_scale: 14.0
+  demod_timing_offsets: 4
+  demod_attn_heads: 4
+  detach_demod: false

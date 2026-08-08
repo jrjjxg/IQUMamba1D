@@ -1,0 +1,26 @@
+model_config:
+  model_type: spmamba
+
+  input_channels: 2
+  num_classes: 4
+
+  spmamba_config:
+    n_srcs: 2
+    n_fft: 256
+    hop_length: 64
+    win_length: 256
+    center: true
+    normalize_input: true
+    eps: 1.0e-8
+    # 架构参数
+    n_layers: 4
+    hidden_channels: 128
+    attn_n_head: 4
+    attn_qk_output_channel: 4
+    emb_dim: 48
+    emb_ks: 4
+    emb_hs: 1
+    # Mamba 参数
+    d_state: 16
+    d_conv: 4
+    mamba_expand: 2

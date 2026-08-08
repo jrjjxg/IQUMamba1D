@@ -1,0 +1,57 @@
+# Stage 231: stage-4 IQUMamba with three low-cost communication constraints.
+model_config:
+  model_type: iqumamba_multiview_consistent
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # One RMS scale is shared by I and Q and restored before projection.
+  iq_power_norm_eps: 1.0e-6
+  iq_power_norm_detach_scale: false
+
+  # Pure time-domain source + residual-noise mixture consistency.
+  noise_mc_apply_projection: true
+  noise_mc_project_during_train: true
+  noise_mc_project_during_eval: true
+  noise_mc_source_weight: 0.25
+  noise_mc_noise_weight: 1.0
+  noise_mc_eps: 1.0e-8
+  noise_head_hidden_channels: 32
+  noise_head_kernel_size: 7
+  noise_head_zero_init: true
+
+  # Easy/hard SNR views. The higher-SNR view owns the PIT decision and the
+  # exact same source-slot permutation is imposed on the lower-SNR view.
+  cross_snr_enable: true
+  cross_snr_probability: 0.5
+  cross_snr_high_db: 10.0
+  cross_snr_low_start_db: 2.0
+  cross_snr_low_middle_db: -6.0
+  cross_snr_low_final_db: -10.0
+  cross_snr_first_fraction: 0.2
+  cross_snr_second_fraction: 0.6
+  cross_snr_pair_weight: 0.5
+  cross_snr_consistency_weight: 0.1
+  cross_snr_consistency_beta: 0.5
+  cross_snr_shared_permutation: true
+  cross_snr_eps: 1.0e-8
+
+  # Common IQ rotation view; training-only and therefore zero inference cost.
+  phase_equiv_enable: true
+  phase_equiv_probability: 0.25
+  phase_equiv_supervised_weight: 0.25
+  phase_equiv_consistency_weight: 0.1
+  phase_equiv_max_degrees: 180.0
+  phase_equiv_beta: 0.5
+  phase_equiv_eps: 1.0e-8
+
+  # Keep the ablation limited to the three named components.
+  confidence_soft_pit_enable: false
+
+  receiver_symbol_weight: 0.0

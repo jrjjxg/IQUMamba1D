@@ -1,0 +1,14 @@
+# Public-information reproduction of the KU-TII ICASSP 2024 RF Challenge entry.
+#
+# The original implementation was not released. The public two-page paper
+# specifies a 30-layer WaveNet, 256 residual channels, learnable dilations,
+# same-length padding, and a dilation cycle chosen per mixture case. Keep one
+# copy of this config per candidate cycle or use `rfchallenge.cli train-sweep`.
+model_config:
+  model_type: kutii_learnable_dilation_wavenet
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 256
+  residual_layers: 30
+  dilation_cycle_length: 10
+  max_dilation: 1024

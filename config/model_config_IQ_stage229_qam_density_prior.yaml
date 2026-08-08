@@ -1,0 +1,24 @@
+# Stage 229: Stage-4 IQUMamba + source-wise QAM constellation-density prior.
+model_config:
+  model_type: iqumamba_qam_density_prior
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  qam_density_hidden_channels: 16
+  qam_density_axis_level_bank: [4, 8]
+  qam_density_include_cross_128: true
+  qam_density_phase_bank: [-0.3926990817, 0.0, 0.3926990817, 0.7853981634]
+  qam_density_temperature: 12.0
+  qam_density_route_temperature: 4.0
+  qam_density_null_bias: 0.0
+  qam_density_max_scale: 0.12
+  # Non-zero scale lets the zero-initialized residual head receive gradients.
+  qam_density_scale_init: 0.02
+  qam_density_kernel_size: 9

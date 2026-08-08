@@ -1,0 +1,30 @@
+# IQUTransformer1D - Pure Transformer replacement of IQUMamba1D
+#
+# Architecture:
+#   Keeps the residual 1D U-Net encoder/decoder and skip refinement aligned
+#   with IQUMamba1D, while replacing the alternating Mamba layers with
+#   Transformer blocks.
+#
+# Notes:
+#   - Uses sinusoidal positional encoding inside each Transformer block.
+#   - Keeps the original alternating placement pattern for fair comparison.
+#   - Uses adaptive token layout, matching IQUMamba1D's switch rule.
+
+model_config:
+  model_type: transformer1d
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  transformer_n_heads: 4
+  transformer_dropout: 0.0
+  transformer_ffn_expand: 4
+  transformer_token_layout: adaptive
+  transformer_pos_encoding: sinusoidal

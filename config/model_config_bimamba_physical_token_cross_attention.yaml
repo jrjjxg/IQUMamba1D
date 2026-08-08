@@ -1,0 +1,23 @@
+# Stage 244: Stage 12 + time-domain physical-token Cross-Attention.
+model_config:
+  model_type: bimamba_physical_token_cross_attention
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  physical_query_stage: 2
+  physical_num_heads: 4
+  physical_dropout: 0.0
+  physical_residual_scale_init: 0.01
+  physical_cyclic_lags: [0, 1, 2, 4, 8]
+  physical_polyphase_branches: 8
+  physical_symbol_orders: [2, 4, 8]
+  physical_min_cyclic_freq: 0.015625
+  physical_max_cyclic_freq: 0.125
+  physical_cyclic_temperature: 0.25

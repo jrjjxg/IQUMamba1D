@@ -1,0 +1,22 @@
+# Stage 248: Stage 235 + Stage-245 bottleneck-enhanced global memory.
+model_config:
+  model_type: bimamba_enhanced_global_cross_attention
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  fusion_query_stage: 2
+  fusion_global_stage: 3
+  fusion_global_kv_tokens: 64
+  fusion_num_heads: 4
+  fusion_dropout: 0.0
+  fusion_global_scale_init: 0.01
+  fusion_bottleneck_num_heads: 4
+  fusion_bottleneck_dropout: 0.0
+  fusion_bottleneck_scale_init: 1.0

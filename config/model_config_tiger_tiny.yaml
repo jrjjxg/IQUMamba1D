@@ -1,0 +1,22 @@
+model_config:
+  model_type: tiger
+
+  input_channels: 2
+  num_classes: 4
+
+  tiger_config:
+    n_srcs: 2
+    # 极简配置：快速消融实验/调参用
+    n_fft: 512
+    hop_length: 128
+    win_length: 512
+    center: true
+    normalize_input: true
+    eps: 1.0e-8
+    out_channels: 64      # 特征维度减半
+    in_channels: 256
+    num_blocks: 4
+    upsampling_depth: 3   # 多尺度深度3层就够 (原始4层)
+    att_n_head: 4
+    att_hid_chan: 4
+    nband: 8              # 子带数少一点，单块更大，GPU更爽

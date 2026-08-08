@@ -1,0 +1,30 @@
+# Stage 232 ablation: stage-4 IQUMamba + multi-view shared-permutation PIT only.
+model_config:
+  model_type: iqumamba
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  cross_snr_enable: true
+  cross_snr_probability: 0.5
+  cross_snr_high_db: 10.0
+  cross_snr_low_start_db: 2.0
+  cross_snr_low_middle_db: -6.0
+  cross_snr_low_final_db: -10.0
+  cross_snr_first_fraction: 0.2
+  cross_snr_second_fraction: 0.6
+  cross_snr_pair_weight: 0.5
+  cross_snr_consistency_weight: 0.1
+  cross_snr_consistency_beta: 0.5
+  cross_snr_shared_permutation: true
+  cross_snr_eps: 1.0e-8
+
+  phase_equiv_enable: false
+  confidence_soft_pit_enable: false
+  receiver_symbol_weight: 0.0

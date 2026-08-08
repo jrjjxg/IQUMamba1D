@@ -1,0 +1,10 @@
+model_config:
+  model_type: iqumamba_dwt
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  conv_bias: true

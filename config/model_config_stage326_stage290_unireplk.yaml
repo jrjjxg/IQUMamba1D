@@ -1,0 +1,18 @@
+# Stage326: Stage290 strict-complex stem + Stage310 UniRepLK at stages0-2.
+model_config:
+  model_type: iqumamba_strong_rf_combination
+  combination_variant: complex_unireplk
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  complex_norm_eps: 1.0e-6
+  rf_residual_scale_init: 0.05
+  unireplk_large_kernel: 17
+  unireplk_ffn_factor: 4
+  unireplk_layer_scale: 1.0e-6

@@ -1,0 +1,20 @@
+# Stage 357: fully strict-complex Stage-4 U-Net with strict-complex S4D.
+# d_state counts complex states per complex feature. 64 preserves Stage 336's
+# total recurrent real-state budget because Stage 357 has half as many complex
+# feature channels and twice as many explicitly represented complex poles.
+model_config:
+  model_type: iqumamba_stage4_complex_s4d
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  complex_norm_eps: 1.0e-6
+  memory_d_state: 64
+  memory_dropout: 0.0
+  memory_dt_min: 0.001
+  memory_dt_max: 0.1

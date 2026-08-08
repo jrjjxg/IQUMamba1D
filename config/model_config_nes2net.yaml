@@ -1,0 +1,28 @@
+model_config:
+
+  model_type: nes2net
+  input_channels: 2
+  num_classes: 4
+
+  # NES2Net-specific configuration
+  nes2net_config:
+    # NEM (Number Estimation Module)
+    max_sources: 5
+    nem_base_channels: 64
+    nem_num_blocks: 5
+
+    # SSM (Signal Separation Module) - 1D U-Net backbone
+    unet_features: [32, 64, 128, 256]
+    unet_kernel_size: 3
+
+    # Operating mode: 'separation' (drop-in) | 'joint' | 'nem_only'
+    mode: separation
+
+  # These are unused by NES2Net but kept for pipeline compatibility
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false

@@ -1,0 +1,14 @@
+model_config:
+  model_type: "ablation_caspp_attn_shallow"
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 512]
+  kernel_sizes: [5, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  conv_bias: true
+  deep_supervision: false
+  gated_decoder_stages: [3]
+  residual_scale_init: 0.05

@@ -1,0 +1,20 @@
+# IQUBiMamba1D_FullComplex - complex-valued BiMamba U-Net
+#
+# Keeps the full encoder/decoder feature path in paired real/imag complex form.
+# BiMamba is retained through a complex wrapper around two real BiMamba cores.
+
+model_config:
+  model_type: bimamba_fullcomplex
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Raw-IQ complex stem.
+  complex_stem_kernel_size: 5

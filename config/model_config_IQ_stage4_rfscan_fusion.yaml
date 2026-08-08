@@ -1,0 +1,29 @@
+# IQUMamba1D_RFScanFusion - stage-4 IQUMamba with AP/STFT adapter fusion.
+#
+# Keeps the original IQUMamba MambaLayer main path. The RF/Radar-inspired
+# branch is only a zero-initialized lightweight Conv/FiLM adapter.
+
+model_config:
+  model_type: iqumamba_rfscan_fusion
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  rfscan_chunk_size: 256
+  rfscan_shift_size: null
+  rfscan_freq_bands: 16
+  rfscan_gate_hidden: 64
+  rfscan_conv_kernel_size: 5
+  rfscan_residual_scale_init: 0.0
+  rfscan_condition_scale_init: 0.0
+  rfscan_stft_n_fft: 256
+  rfscan_stft_hop_length: 64
+  rfscan_stft_win_length: null
+  rfscan_stft_freq_bins: 32

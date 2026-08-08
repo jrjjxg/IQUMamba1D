@@ -1,0 +1,23 @@
+# IQUMamba1D_BlindStatInput - stage-4 IQUMamba with a near-identity raw-IQ
+# input adapter conditioned only by mixture blind statistics.
+
+model_config:
+  model_type: iqumamba_blindstat_input
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  blindstat_hidden: 16
+  blindstat_kernel_size: 9
+  blindstat_scale_init: 0.01
+  blindstat_cyclic_min_freq: 0.015625
+  blindstat_cyclic_max_freq: 0.125
+  blindstat_cyclic_default_freq: 0.03125
+  blindstat_zero_init: true

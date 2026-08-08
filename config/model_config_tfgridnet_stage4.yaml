@@ -1,0 +1,21 @@
+model_config:
+  model_type: tfgridnet
+
+  input_channels: 2
+  num_classes: 4
+
+  tfgridnet_config:
+    n_srcs: 2
+    n_fft: 256
+    hop_length: 64
+    win_length: 256
+    center: true
+    normalize_input: true
+    eps: 1.0e-8
+    n_layers: 6
+    lstm_hidden_units: 192
+    attn_n_head: 4
+    attn_qk_output_channel: 4
+    emb_dim: 48
+    emb_ks: 4
+    emb_hs: 1

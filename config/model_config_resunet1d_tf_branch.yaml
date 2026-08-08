@@ -1,0 +1,23 @@
+# IQUResUNet1D_TFBranch - Time-Frequency Dual-Branch ResUNet
+#
+# Combines a time-domain U-Net branch and a frequency-domain U-Net branch
+# with a learnable gating fusion network.
+
+model_config:
+  model_type: resunet1d_tf_branch
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+  
+  # TF branch hyperparameters
+  n_fft: 128
+  hop_length: 32
+  win_length: 128
+  freq_features_per_stage: [64, 128, 256]

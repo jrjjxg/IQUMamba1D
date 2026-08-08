@@ -1,0 +1,19 @@
+# Stage 246: Stage 12 + same-scale parallel BiMamba/QKV attention at Stage 3.
+model_config:
+  model_type: bimamba_hymba_parallel
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  hymba_stage: 3
+  hymba_num_heads: 4
+  hymba_dropout: 0.0
+  hymba_mamba_scale_init: 1.0
+  hymba_attention_scale_init: 0.01
+  hymba_attention_scale_max: 1.0

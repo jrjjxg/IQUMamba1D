@@ -1,0 +1,22 @@
+# IQUMamba1D_PSKPhasePrior - stage-4 IQUMamba with a phase-step input adapter.
+# Intended for PSK-family datasets such as 8PSK/16PSK variants.
+
+model_config:
+  model_type: iqumamba_psk_phase_prior
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  psk_prior_hidden_channels: 8
+  psk_prior_harmonics: [1, 2, 4, 8]
+  psk_prior_kernel_size: 9
+  psk_prior_scale_init: 0.01
+  psk_prior_reliability_floor: 0.05
+  psk_prior_zero_init: true

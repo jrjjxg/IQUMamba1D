@@ -1,0 +1,15 @@
+# Stage 287 (C5): Stage 286 plus a bounded identity-initialized z* adapter for
+# I/Q imbalance and image leakage. The complex WaveNet backbone remains strict.
+model_config:
+  model_type: icassp_complex_wavenet
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  complex_layers: 20
+  strict_complex_output: true
+  use_conjugate_adapter: true
+  conjugate_adapter_max: 0.15
+  complex_norm_enable: false
+  complex_norm_eps: 1.0e-6

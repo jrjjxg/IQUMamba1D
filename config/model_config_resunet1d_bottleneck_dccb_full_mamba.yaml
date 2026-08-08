@@ -1,0 +1,34 @@
+# ==============================================================================
+# IQUResUNet1D DCCB Bottleneck + Full Mamba Configuration
+# Stage 139
+# ==============================================================================
+
+# Core architecture parameters
+input_size: 4096
+input_channels: 2
+n_stages: 5
+features_per_stage: [32, 64, 128, 256, 320]
+kernel_sizes: [3, 3, 3, 3, 3]
+strides: [1, 2, 2, 2, 2]
+n_conv_per_stage: [2, 2, 2, 2, 2]
+num_classes: 4
+n_conv_per_stage_decoder: [2, 2, 2, 2]
+
+# General enhancements
+deep_supervision: False
+
+# ==============================================================================
+# BiMamba Encoder Settings
+# ==============================================================================
+use_mamba_stages: [False, False, True, True, True]
+mamba_residual_scale_init: 0.1
+
+# ==============================================================================
+# BiMamba Decoder Settings
+# ==============================================================================
+use_decoder_mamba: True
+
+# ==============================================================================
+# Skip Connection Configuration
+# ==============================================================================
+skip_mode: "lssg_channel"

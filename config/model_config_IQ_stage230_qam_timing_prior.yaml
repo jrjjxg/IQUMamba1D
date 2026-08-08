@@ -1,0 +1,25 @@
+# Stage 230: Stage-4 IQUMamba + blind QAM timing/SPS prior.
+model_config:
+  model_type: iqumamba_qam_timing_prior
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  qam_timing_hidden_channels: 16
+  qam_timing_sps_candidates: [10, 20]
+  qam_timing_rrc_rolloff: 0.35
+  qam_timing_rrc_span: 12
+  qam_timing_axis_level_bank: [4, 8]
+  qam_timing_route_temperature: 12.0
+  qam_timing_null_bias: 0.0
+  qam_timing_reliability_floor: 0.05
+  qam_timing_max_scale: 0.12
+  # Non-zero scale lets the zero-initialized residual head receive gradients.
+  qam_timing_scale_init: 0.02
+  qam_timing_kernel_size: 9

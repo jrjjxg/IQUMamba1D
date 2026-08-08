@@ -1,0 +1,37 @@
+# Stage 342: FRESH + strict-complex stem + full RF Mamba-3 + real UniRepLK.
+model_config:
+  model_type: iqumamba_full_rf_mamba3_combination
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  estimated_cyclofresh_min_freq: 0.015625
+  estimated_cyclofresh_max_freq: 0.125
+  estimated_cyclofresh_default_freq: 0.03125
+  estimated_cyclofresh_momentum: 0.05
+  estimated_cyclofresh_hidden_channels: 8
+  estimated_cyclofresh_kernel_size: 9
+  estimated_cyclofresh_scale_init: 0.01
+  estimated_cyclofresh_gate_hidden: 8
+  estimated_cyclofresh_zero_init: true
+  complex_norm_eps: 1.0e-6
+  mamba_d_state: 8
+  mamba_d_conv: 4
+  mamba_expand: 2
+  scan_backend: auto
+  scan_checkpoint: true
+  trapezoid_lambda_init: 0.5
+  cyclic_frequencies: [0.0, 0.015625, -0.015625, 0.03125, -0.03125, 0.05, -0.05, 0.025]
+  cyclic_max_frequency_delta: 0.01
+  reliability_hidden: 8
+  reliability_floor: 0.05
+  reliability_init: 0.995
+  rf_residual_scale_init: 0.05
+  unireplk_large_kernel: 17
+  unireplk_ffn_factor: 4
+  unireplk_layer_scale: 1.0e-6

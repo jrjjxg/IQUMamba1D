@@ -19,6 +19,7 @@ from util.metrics import (
     _split_sources,
     strict_ber_iq_from_bits,
     oracle_ber_iq_from_bits,
+    reference_ber_iq_from_bits,
 )
 
 EPS = 1e-12
@@ -174,8 +175,11 @@ def reorder_outputs_for_eval(
     num_sources: int,
     pit_metric: str = "si_snr_complex",
 ) -> Tuple[torch.Tensor, List[Tuple[int, ...]]]:
-    """Apply one explicit PIT rule before metric computation."""
+    """Apply the configured source-order alignment before metric computation."""
     pit_metric = str(pit_metric).lower()
+    if pit_metric == "none":
+        identity = tuple(range(num_sources))
+        return outputs, [identity for _ in range(targets.shape[0])]
     if num_sources < 2:
         best_perm_per_sample = [tuple(range(num_sources)) for _ in range(targets.shape[0])]
         return outputs, best_perm_per_sample
@@ -189,7 +193,7 @@ def reorder_outputs_for_eval(
     else:
         raise ValueError(
             f"Unsupported eval PIT metric '{pit_metric}'. "
-            "Expected one of: si_snr_complex, si_snr_real, mse."
+            "Expected one of: none, si_snr_complex, si_snr_real, mse."
         )
 
     return reorder_outputs_by_per_sample_perm(outputs, best_perm_per_sample, num_sources), best_perm_per_sample
@@ -223,6 +227,20 @@ def extract_separation_output(model_output):
     if isinstance(model_output, tuple):
         return model_output[0]
     return model_output
+
+
+def validate_source_tensor(tensor: torch.Tensor, num_sources: int, name: str) -> torch.Tensor:
+    """Validate the common separator tensor contract: [B, 2*K, L]."""
+    expected_channels = 2 * int(num_sources)
+    if not torch.is_tensor(tensor) or tensor.ndim != 3:
+        actual = type(tensor).__name__ if not torch.is_tensor(tensor) else tuple(tensor.shape)
+        raise ValueError(f"{name}: expected tensor [B, {expected_channels}, L], got {actual}")
+    if tensor.size(1) != expected_channels:
+        raise ValueError(
+            f"{name}: expected [B, {expected_channels}, L] for {num_sources} sources, "
+            f"got {tuple(tensor.shape)}"
+        )
+    return tensor
 
 
 def extract_demod_outputs(model_output):
@@ -525,10 +543,13 @@ def compute_stream_ber_for_matlab_h5_dataset(
     if not file_indices:
         raise ValueError("No file indices provided for stream BER evaluation.")
 
-    if str(ber_variant).lower() == "strict":
+    ber_variant_key = str(ber_variant).lower()
+    if ber_variant_key == "strict":
         ber_fn = strict_ber_iq_from_bits
-    elif str(ber_variant).lower() == "oracle":
+    elif ber_variant_key == "oracle":
         ber_fn = oracle_ber_iq_from_bits
+    elif ber_variant_key == "reference":
+        ber_fn = reference_ber_iq_from_bits
     else:
         raise ValueError(f"Unknown ber_variant: {ber_variant}")
 
@@ -563,6 +584,8 @@ def compute_stream_ber_for_matlab_h5_dataset(
                 sep_outputs = extract_separation_output(outputs)
                 if isinstance(sep_outputs, (list, tuple)):
                     sep_outputs = sep_outputs[-1]
+                validate_source_tensor(sep_outputs, num_sources, 'model separation output')
+                validate_source_tensor(targets, num_sources, 'targets')
                 reordered, _ = reorder_outputs_for_eval(
                     sep_outputs,
                     targets,
@@ -579,7 +602,34 @@ def compute_stream_ber_for_matlab_h5_dataset(
             tgts_file = torch.cat(target_batches, dim=0)
 
             for source_idx in range(num_sources):
-                if str(protocol).upper() == "8PSK-A":
+                if ber_variant_key == "reference":
+                    pred_stream = _concat_source_stream(preds_file, source_idx)
+                    tgt_stream = _concat_source_stream(tgts_file, source_idx)
+                    bits_stream = bits_tuple_cpu[source_idx].reshape(1, -1)
+                    sps_by_source = meta.get("samples_per_symbol_by_source") or []
+                    cfo_by_source = meta.get("cfo_hz_by_source") or []
+                    source_sps = (
+                        sps_by_source[source_idx]
+                        if source_idx < len(sps_by_source)
+                        else meta.get("samples_per_symbol")
+                    )
+                    source_cfo = (
+                        cfo_by_source[source_idx]
+                        if source_idx < len(cfo_by_source)
+                        else 0.0
+                    )
+                    ber_val = ber_fn(
+                        pred_stream.float(),
+                        tgt_stream.float(),
+                        bits_stream,
+                        modulation=modulations[source_idx],
+                        sps=int(source_sps),
+                        sample_rate_hz=float(meta["sample_rate_hz"]),
+                        cfo_hz=float(source_cfo),
+                        rrc_alpha=float(meta.get("rrc_alpha", 0.35) or 0.35),
+                        rrc_span=int(meta.get("rrc_span", 20) or 20),
+                    )
+                elif str(protocol).upper() == "8PSK-A":
                     pred_eval = preds_file[:, 2 * source_idx: 2 * source_idx + 2, :]
                     tgt_eval = tgts_file[:, 2 * source_idx: 2 * source_idx + 2, :]
                     bits_eval = bits_tuple_cpu[source_idx]
@@ -655,7 +705,13 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
         logger.info(f"[BER] Inferred modulations from data_choice='{data_choice}': {ber_modulations}")
     elif report_ber:
         logger.info(f"[BER] Could not infer modulations from data_choice='{data_choice}', BER will be NaN.")
-    logger.info(f"[Eval] Shared PIT alignment metric for reporting: {eval_pit_metric}")
+    logger.info(f"[Eval] Source alignment mode for reporting: {eval_pit_metric}")
+    dual_report_fixed_and_pit = str(eval_pit_metric).lower() == "none"
+    if dual_report_fixed_and_pit:
+        logger.info(
+            "[Eval] Dual reporting enabled: fixed-order metrics are primary; "
+            "PIT(si_snr_complex) metrics are reported alongside them."
+        )
     if report_ber and not ber_compute_oracle:
         logger.info("[BER] Oracle BER is disabled by default; pass --ber_compute_oracle for the slower debug upper bound.")
     if report_phase_flip:
@@ -840,6 +896,19 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
         test_scale_aligned_mse = 0.0
         test_sc = 0.0
         test_pearson = 0.0
+        waveform_metric_names = (
+            'Correlation', 'SI-SNR_real', 'SI-SNR_paper', 'SI-SNR_repo',
+            'SI-SNR_complex', 'MSE', 'ScaleAligned_MSE', 'SC', 'Pearson',
+        )
+        pit_metric_sums = {name: 0.0 for name in waveform_metric_names}
+        pit_source_metric_sums = {
+            i: {name: 0.0 for name in waveform_metric_names}
+            for i in range(num_source)
+        }
+        pit_source_metric_den = {
+            i: {name: 0 for name in waveform_metric_names}
+            for i in range(num_source)
+        }
         test_ber_strict = 0.0
         test_ber_strict_den = 0
         test_ber_oracle = 0.0
@@ -899,11 +968,17 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
         
         with torch.no_grad():
             for batch_idx, batch in enumerate(loader):
-                if isinstance(batch, (list, tuple)) and len(batch) == 4:
-                    inputs, targets, _snr_label, bits = batch
-                else:
-                    inputs, targets, _snr_label = batch
-                    bits = None
+                if not isinstance(batch, (list, tuple)) or len(batch) < 3:
+                    raise ValueError("Evaluation batches must contain mixture, targets and SNR")
+                inputs, targets, _snr_label, *batch_extras = batch
+                bits = next(
+                    (
+                        tuple(value)
+                        for value in batch_extras
+                        if isinstance(value, (tuple, list)) and len(value) == num_source
+                    ),
+                    None,
+                )
 
                 inputs, targets = inputs.to(device), targets.to(device)
                 if bits is not None:
@@ -936,6 +1011,8 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
                 sep_outputs = extract_separation_output(outputs)
                 if isinstance(sep_outputs, (list, tuple)):
                     sep_outputs = sep_outputs[-1]
+                validate_source_tensor(sep_outputs, num_source, 'model separation output')
+                validate_source_tensor(targets, num_source, 'targets')
 
                 if DIAG_EMPIRICAL_SNR:
                     snr_vals = empirical_snr_db_values(inputs_B2L, targets_BK2L)
@@ -962,12 +1039,24 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
                         logger.info(f'[PhaseAlign] S1 corr before={corr_before:.4f}, after={corr_after:.4f}')
                 
                 # Calculate overall metrics
+                criterion_outputs = outputs
+                # Auxiliary dictionaries are not waveform tensors. Generic
+                # separation criteria must receive only the source output;
+                # demodulation criteria are the exception because they
+                # explicitly consume the auxiliary logits with `bits`.
+                if (
+                    isinstance(outputs, tuple)
+                    and len(outputs) >= 2
+                    and isinstance(outputs[1], dict)
+                    and not _needs_bits
+                ):
+                    criterion_outputs = sep_outputs
                 if _needs_bits and bits is not None:
                     test_loss += criterion(outputs, targets, bits=bits).item()
                 elif _needs_mixture:
-                    test_loss += criterion(outputs, targets, inputs).item()
+                    test_loss += criterion(criterion_outputs, targets, inputs).item()
                 else:
-                    test_loss += criterion(outputs, targets).item()
+                    test_loss += criterion(criterion_outputs, targets).item()
 
                 # Use per-sample PIT alignment before computing evaluation metrics
                 # to avoid penalizing valid source-order swaps.
@@ -977,6 +1066,14 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
                     num_source,
                     pit_metric=eval_pit_metric,
                 )
+                outputs_pit_eval = None
+                if dual_report_fixed_and_pit:
+                    outputs_pit_eval, _ = reorder_outputs_for_eval(
+                        sep_outputs,
+                        targets,
+                        num_source,
+                        pit_metric='si_snr_complex',
+                    )
 
                 phase_flip_source_rates = [float("nan")] * num_source
                 if report_phase_flip:
@@ -1104,6 +1201,18 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
                             continue
                         source_metrics_sum[source_idx][metric_name] += source_metrics_batch[source_idx][metric_name]
                         source_metrics_den[source_idx][metric_name] += 1
+
+                if outputs_pit_eval is not None:
+                    pit_source_metrics_batch = calculate_metrics_per_source(
+                        outputs_pit_eval, targets, num_source
+                    )
+                    for source_idx in range(num_source):
+                        for metric_name in waveform_metric_names:
+                            value = pit_source_metrics_batch[source_idx][metric_name]
+                            value = value.item() if torch.is_tensor(value) else float(value)
+                            pit_metric_sums[metric_name] += value
+                            pit_source_metric_sums[source_idx][metric_name] += value
+                            pit_source_metric_den[source_idx][metric_name] += 1
                 
                 # Plot signal comparison
                 if save_artifacts and batch_idx == 0 and num_plots > 0:
@@ -1127,6 +1236,21 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
         avg_scale_aligned_mse = test_scale_aligned_mse / metric_den
         avg_sc = test_sc / metric_den
         avg_pearson = test_pearson / metric_den
+        pit_avg_metrics = {}
+        pit_source_avg_metrics = {}
+        if dual_report_fixed_and_pit:
+            pit_avg_metrics = {
+                name: pit_metric_sums[name] / metric_den
+                for name in waveform_metric_names
+            }
+            for source_idx in range(num_source):
+                pit_source_avg_metrics[source_idx] = {}
+                for metric_name in waveform_metric_names:
+                    den = pit_source_metric_den[source_idx][metric_name]
+                    pit_source_avg_metrics[source_idx][metric_name] = (
+                        pit_source_metric_sums[source_idx][metric_name] / den
+                        if den > 0 else float('nan')
+                    )
         avg_ber_strict = (test_ber_strict / test_ber_strict_den) if test_ber_strict_den > 0 else float("nan")
         avg_ber_oracle = (test_ber_oracle / test_ber_oracle_den) if test_ber_oracle_den > 0 else float("nan")
         avg_demod_bit_acc = (test_demod_bit_correct / test_demod_bit_total) if test_demod_bit_total > 0 else float("nan")
@@ -1274,6 +1398,12 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
             'Phase_Flip_MeanDistToPi_Deg': avg_phase_flip_dist_pi,
             'Source_Metrics': source_avg_metrics
         }
+        if dual_report_fixed_and_pit:
+            snr_metrics[snr]['PIT_Aligned_Metrics'] = {
+                **pit_avg_metrics,
+                'Alignment': 'si_snr_complex',
+                'Source_Metrics': pit_source_avg_metrics,
+            }
         
         # Store correlation coefficients for plotting
         snr_list.append(snr)
@@ -1311,6 +1441,11 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
             'Phase_Flip_Mode': phase_flip_mode if report_phase_flip else "",
             'Eval_PIT_Metric': eval_pit_metric,
         }
+        if dual_report_fixed_and_pit:
+            metrics_row.update({
+                f'PIT_{name}': pit_avg_metrics[name]
+                for name in waveform_metric_names
+            })
         all_metrics_list.append(metrics_row)
         
         # Add metrics for each source for CSV
@@ -1343,27 +1478,54 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
                 'Phase_Flip_Mode': phase_flip_mode if report_phase_flip else "",
                 'Eval_PIT_Metric': eval_pit_metric,
             }
+            if dual_report_fixed_and_pit:
+                source_row.update({
+                    f'PIT_{name}': pit_source_avg_metrics[source_idx][name]
+                    for name in waveform_metric_names
+                })
             all_metrics_list.append(source_row)
         
         # Log results
         logger.info(f'SNR {snr}dB:')
-        logger.info(f'\tOverall - Loss: {avg_loss:.8f}, Correlation: {avg_corr:.8f}')
+        primary_label = 'Overall [Fixed]' if dual_report_fixed_and_pit else 'Overall'
+        if dual_report_fixed_and_pit:
+            logger.info(f'\tOverall - Loss (criterion): {avg_loss:.8f}')
+            logger.info(f'\t{primary_label} - Correlation: {avg_corr:.8f}')
+        else:
+            logger.info(f'\t{primary_label} - Loss: {avg_loss:.8f}, Correlation: {avg_corr:.8f}')
         logger.info(
-            f'\tOverall - SI-SNR_real: {avg_si_snr_real:.4f} dB, '
+            f'\t{primary_label} - SI-SNR_real: {avg_si_snr_real:.4f} dB, '
             f'SI-SNR_paper: {avg_si_snr_paper:.4f} dB, '
             f'SI-SNR_repo: {avg_si_snr_repo:.4f} dB, '
             f'SI-SNR_complex: {avg_si_snr_complex:.4f} dB'
         )
         if report_ber:
             logger.info(
-                f'\tOverall - MSE: {avg_mse:.6f}, ScaleAligned_MSE: {avg_scale_aligned_mse:.6f}, '
+                f'\t{primary_label} - MSE: {avg_mse:.6f}, ScaleAligned_MSE: {avg_scale_aligned_mse:.6f}, '
                 f'SC: {avg_sc:.4f}, Pearson: {avg_pearson:.4f}, '
                 f'BER_strict: {avg_ber_strict:.6f}, BER_oracle: {avg_ber_oracle:.6f}'
             )
         else:
             logger.info(
-                f'\tOverall - MSE: {avg_mse:.6f}, ScaleAligned_MSE: {avg_scale_aligned_mse:.6f}, '
+                f'\t{primary_label} - MSE: {avg_mse:.6f}, ScaleAligned_MSE: {avg_scale_aligned_mse:.6f}, '
                 f'SC: {avg_sc:.4f}, Pearson: {avg_pearson:.4f}'
+            )
+        if dual_report_fixed_and_pit:
+            pit_label = 'Overall [PIT:si_snr_complex]'
+            logger.info(
+                f'\t{pit_label} - Correlation: {pit_avg_metrics["Correlation"]:.8f}'
+            )
+            logger.info(
+                f'\t{pit_label} - SI-SNR_real: {pit_avg_metrics["SI-SNR_real"]:.4f} dB, '
+                f'SI-SNR_paper: {pit_avg_metrics["SI-SNR_paper"]:.4f} dB, '
+                f'SI-SNR_repo: {pit_avg_metrics["SI-SNR_repo"]:.4f} dB, '
+                f'SI-SNR_complex: {pit_avg_metrics["SI-SNR_complex"]:.4f} dB'
+            )
+            logger.info(
+                f'\t{pit_label} - MSE: {pit_avg_metrics["MSE"]:.6f}, '
+                f'ScaleAligned_MSE: {pit_avg_metrics["ScaleAligned_MSE"]:.6f}, '
+                f'SC: {pit_avg_metrics["SC"]:.4f}, '
+                f'Pearson: {pit_avg_metrics["Pearson"]:.4f}'
             )
         if test_demod_bit_total > 0:
             logger.info(
@@ -1386,25 +1548,43 @@ def test_model(model, snr_loaders, criterion, device, logger, results_folder,
         for source_idx in range(num_source):
             signal_name = signal_names[source_idx] if signal_names else f'Source_{source_idx}'
             metrics = source_avg_metrics[source_idx]
-            logger.info(f'\t{signal_name} - Correlation: {metrics["Correlation"]:.8f}')
+            source_label = f'{signal_name} [Fixed]' if dual_report_fixed_and_pit else signal_name
+            logger.info(f'\t{source_label} - Correlation: {metrics["Correlation"]:.8f}')
             logger.info(
-                f'\t{signal_name} - SI-SNR_real: {metrics["SI-SNR_real"]:.4f} dB, '
+                f'\t{source_label} - SI-SNR_real: {metrics["SI-SNR_real"]:.4f} dB, '
                 f'SI-SNR_paper: {metrics["SI-SNR_paper"]:.4f} dB, '
                 f'SI-SNR_repo: {metrics["SI-SNR_repo"]:.4f} dB, '
                 f'SI-SNR_complex: {metrics["SI-SNR_complex"]:.4f} dB'
             )
             if report_ber and "BER_strict" in metrics:
                 logger.info(
-                    f'\t{signal_name} - MSE: {metrics["MSE"]:.6f}, '
+                    f'\t{source_label} - MSE: {metrics["MSE"]:.6f}, '
                     f'ScaleAligned_MSE: {metrics["ScaleAligned_MSE"]:.6f}, SC: {metrics["SC"]:.4f}, '
                     f'Pearson: {metrics["Pearson"]:.4f}, BER_strict: {metrics["BER_strict"]:.6f}, '
                     f'BER_oracle: {metrics.get("BER_oracle", float("nan")):.6f}'
                 )
             else:
                 logger.info(
-                    f'\t{signal_name} - MSE: {metrics["MSE"]:.6f}, '
+                    f'\t{source_label} - MSE: {metrics["MSE"]:.6f}, '
                     f'ScaleAligned_MSE: {metrics["ScaleAligned_MSE"]:.6f}, '
                     f'SC: {metrics["SC"]:.4f}, Pearson: {metrics["Pearson"]:.4f}'
+                )
+            if dual_report_fixed_and_pit:
+                pit_metrics = pit_source_avg_metrics[source_idx]
+                pit_source_label = f'{signal_name} [PIT:si_snr_complex]'
+                logger.info(
+                    f'\t{pit_source_label} - Correlation: {pit_metrics["Correlation"]:.8f}'
+                )
+                logger.info(
+                    f'\t{pit_source_label} - SI-SNR_real: {pit_metrics["SI-SNR_real"]:.4f} dB, '
+                    f'SI-SNR_paper: {pit_metrics["SI-SNR_paper"]:.4f} dB, '
+                    f'SI-SNR_repo: {pit_metrics["SI-SNR_repo"]:.4f} dB, '
+                    f'SI-SNR_complex: {pit_metrics["SI-SNR_complex"]:.4f} dB'
+                )
+                logger.info(
+                    f'\t{pit_source_label} - MSE: {pit_metrics["MSE"]:.6f}, '
+                    f'ScaleAligned_MSE: {pit_metrics["ScaleAligned_MSE"]:.6f}, '
+                    f'SC: {pit_metrics["SC"]:.4f}, Pearson: {pit_metrics["Pearson"]:.4f}'
                 )
             if report_phase_flip:
                 logger.info(

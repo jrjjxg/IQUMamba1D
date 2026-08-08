@@ -1,0 +1,26 @@
+# IQUMamba1D_CycloFRESH - stage-4 IQUMamba with a cyclostationary/FRESH input adapter.
+# The backbone is unchanged.  The adapter creates cyclic-frequency shifted views
+# of the raw I/Q mixture and adds a zero-initialized residual correction.
+
+model_config:
+  model_type: iqumamba_cyclofresh
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Cyclic frequencies are specified in symbol-rate units and normalized by sps:
+  # alpha=1 means exp(-j*2*pi*n/sps).
+  cyclofresh_sps: 20
+  cyclofresh_alphas: [0.0, 1.0, -1.0, 2.0, -2.0]
+  cyclofresh_hidden_channels: 8
+  cyclofresh_kernel_size: 9
+  cyclofresh_scale_init: 0.01
+  cyclofresh_gate_hidden: 8
+  cyclofresh_zero_init: true

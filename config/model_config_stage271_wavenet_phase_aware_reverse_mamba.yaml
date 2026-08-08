@@ -1,0 +1,31 @@
+# Stage 271: Stage 261's forward Mamba plus a physically consistent reverse
+# branch.  The reverse branch input is conj(flip(I + jQ)) = flip(I) - j flip(Q),
+# not the latent real-feature flip used by Stage 262.
+model_config:
+  model_type: icassp_wavenet_interleaved_phase_aware_reverse_mamba
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  # Unchanged Stage-261 forward local-context path.
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01
+
+  # Separate low-rate Mamba branch that reads conj(flip(I/Q)).
+  phase_reverse_mamba_channels: 64
+  phase_reverse_downsample_factor: 4
+  phase_reverse_d_state: 16
+  phase_reverse_d_conv: 4
+  phase_reverse_expand: 2
+  phase_reverse_dropout: 0.0
+  phase_reverse_scale_init: 0.01

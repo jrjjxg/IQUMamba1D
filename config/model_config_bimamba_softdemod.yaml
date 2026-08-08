@@ -1,0 +1,33 @@
+# IQUBiMamba1D_SoftDemod — Joint BSS + Differentiable Soft Demodulation
+#
+# Architecture:
+#   Separation backbone: identical to IQUBiMamba1D (stage 12)
+#   + shared Soft Demod head (Conv1D + BiGRU + AdaptivePool)
+#
+# Training modes (set via --demod_mode):
+#   sep_only   — standard separation, demod head unused
+#   demod_only — separator frozen, only demod head trains
+#   joint      — end-to-end, both outputs returned
+#
+# Requires dataset with bits (BER data must be present in MATLAB files)
+
+model_config:
+  model_type: bimamba_softdemod
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Soft demodulation head parameters
+  demod_num_bits: 615        # 8PSK-A: 205 symbols x 3 bits/symbol
+  demod_bits_per_symbol: 3   # symbol-aware soft demapper outputs 3 logits per symbol
+  demod_hidden: 64           # Conv1d feature width
+  demod_rnn_hidden: 64       # BiGRU hidden dim (output is 2x due to bidirectional)
+  demod_dropout: 0.2         # dropout before output layer
+  detach_demod: false        # if true, stop gradient from demod head to separator

@@ -1,0 +1,17 @@
+model_config:
+  model_type: resunet1d_sk_lssg
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # SKNet-style dynamic routing across local/medium/wide skip gates.
+  gated_decoder_stages: [1, 2]
+  residual_scale_init: 0.1
+  branch_kernels: [1, 5, 9, 17]

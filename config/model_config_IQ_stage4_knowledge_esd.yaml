@@ -1,0 +1,35 @@
+model_config:
+
+  model_type: iqumamba_knowledge_esd
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Source-slot residual refinement.  The final projection is zero-initialized,
+  # so the residual branch starts as an identity adapter around IQUMamba.
+  source_slot_hidden_channels: 32
+  source_slot_kernel_size: 7
+  source_slot_residual_scale_init: 0.01
+  source_slot_zero_init: true
+  source_slot_refine_deep_supervision: true
+  source_slot_apply_train: true
+  source_slot_apply_eval: true
+
+  # Exact additive mixture-consistency projection:
+  #   sum_k source_k = observed mixture.
+  # Uniform projection is least invasive and does not depend on source energy
+  # confidence early in training.
+  mc_weight_mode: uniform
+  mc_weight_power: 1.0
+  mc_min_weight: 0.0
+  mc_eps: 1.0e-8
+  mc_detach_weights: false
+  mc_project_deep_supervision: true
+  mc_apply_train: true
+  mc_apply_eval: true

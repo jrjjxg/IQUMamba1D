@@ -1,0 +1,28 @@
+# Stage 223: Stage-4 IQUMamba with training-only residual-noise contrastive prior.
+model_config:
+  model_type: iqumamba_noise_contrastive_prior
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # This head is called by the training criterion only.  It is not in forward.
+  noise_prior_hidden: 12
+  noise_prior_embedding: 16
+  noise_prior_patch_size: 64
+  noise_prior_patch_stride: 32
+
+  # Residual-noise contrastive supervision.  It is weak on clean mixtures via
+  # the detached residual-power reliability gate.
+  noise_contrastive_prior_enable: true
+  noise_contrastive_prior_weight: 0.05
+  noise_contrastive_prior_patch_size: 64
+  noise_contrastive_prior_patch_stride: 32
+  noise_contrastive_prior_temperature: 0.20
+  noise_contrastive_prior_residual_weight: 0.10
+  noise_contrastive_prior_gate_floor: 0.10

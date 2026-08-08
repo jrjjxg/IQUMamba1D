@@ -1,0 +1,17 @@
+# CVPR 2025 FDConv 1D: disjoint Fourier weight experts, KSM and FBM.
+model_config:
+  model_type: iqumamba_recent_rf
+  rf_module_type: fdconv
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  rf_residual_scale_init: 0.05
+  rf_apply_stages: [0]
+  rf_kernel_size: 31
+  rf_bands: 4

@@ -1,0 +1,23 @@
+# Stage 279: retain Stage 261's 20 fixed-dilation WaveNet blocks, but replace
+# waveform-feature injection with ordered, sample-varying physical controls.
+model_config:
+  model_type: icassp_wavenet_temporal_physical_controller
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  controller_insert_after_block: 10
+  physical_token_channels: 64
+  physical_chunk_size: 64
+  physical_chunk_hop: 32
+  physical_lags: [1, 2, 4, 8, 16, 32]
+  symbol_candidate_periods: [2, 4, 8, 16, 32]
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  temporal_control_gate_max_delta: 0.5
+  temporal_control_film_max_delta: 0.1
+  symbol_evidence_strength: 1.0
+  symbol_router_temperature: 0.35

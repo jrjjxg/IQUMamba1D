@@ -1,0 +1,18 @@
+model_config:
+  model_type: bimamba_local_global_allstage
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # All-stage BiMamba placement with local convolution + global BiMamba fusion.
+  bimamba_apply_stages: [0, 1, 2, 3]
+  bimamba_residual_scale_init: 0.01
+  local_kernel_size: 7
+  local_global_gate_hidden: 64

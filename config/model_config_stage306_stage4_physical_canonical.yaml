@@ -1,0 +1,21 @@
+# Stage 306: original Stage-4 separator with deterministic physical source identity.
+# The two outputs are sorted by ascending mean phase increment (a CFO proxy).
+# This is valid only when the dataset's S1/S2 convention follows the same rule.
+model_config:
+  model_type: iqumamba_physical_canonical
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  canonical_cfo_weight: 1.0
+  canonical_bandwidth_weight: 0.0
+  canonical_ascending: true
+  canonical_symbol_orders: [2, 4, 8]
+  canonical_order_temperature: 0.1
+  canonical_eps: 1.0e-8

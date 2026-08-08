@@ -1,0 +1,24 @@
+# Stage 214: strict stage-4 IQUMamba with training-only confidence Soft-PIT.
+model_config:
+  model_type: iqumamba
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Low-SNR assignments stay probabilistic early in training; all samples
+  # anneal toward the ordinary hard PIT objective by the final epoch.
+  confidence_soft_pit_enable: true
+  confidence_soft_pit_temperature_min: 0.05
+  confidence_soft_pit_temperature_max: 2.0
+  confidence_soft_pit_snr_low_db: -10.0
+  confidence_soft_pit_snr_high_db: 10.0
+  confidence_soft_pit_anneal_power: 2.0
+
+  cross_snr_enable: false
+  receiver_symbol_weight: 0.0

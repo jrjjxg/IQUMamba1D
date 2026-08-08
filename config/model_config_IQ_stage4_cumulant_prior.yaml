@@ -1,0 +1,23 @@
+# Stage 216: strict stage-4 IQUMamba with a training-only cumulant prior.
+model_config:
+  model_type: iqumamba
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  cumulant_prior_enable: true
+  cumulant_prior_weight: 0.05
+  cumulant_prior_probability: 0.5
+  cumulant_prior_batch_fraction: 0.25
+  cumulant_prior_window_sizes: [256, 512, 1024]
+  cumulant_prior_self_weight: 1.0
+  cumulant_prior_cross_weight: 0.25
+  cumulant_prior_confidence_floor: 0.1
+  cumulant_prior_beta: 0.25
+  cumulant_prior_eps: 1.0e-8

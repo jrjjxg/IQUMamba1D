@@ -1,0 +1,25 @@
+# IQUMamba1D Stage 196 - source-wise cyclic-Wiener/FRESH residual head.
+# Universal output-side physical structure embedding for communication BSS.
+
+model_config:
+  model_type: iqumamba_cyclic_wiener_residual
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  cyclic_wiener_hidden_channels: 16
+  cyclic_wiener_kernel_size: 9
+  cyclic_wiener_min_freq: 0.0078125
+  cyclic_wiener_max_freq: 0.25
+  cyclic_wiener_default_freq: 0.03125
+  cyclic_wiener_num_harmonics: 2
+  cyclic_wiener_scale_init: 0.01
+  cyclic_wiener_projection_strength: 0.5
+  cyclic_wiener_zero_init: true

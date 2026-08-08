@@ -1,0 +1,26 @@
+# Stage 249: Stage 235 global memory + Stage-244 physical memory.
+model_config:
+  model_type: bimamba_dual_memory_cross_attention
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  fusion_query_stage: 2
+  fusion_global_stage: 3
+  fusion_global_kv_tokens: 64
+  fusion_num_heads: 4
+  fusion_dropout: 0.0
+  fusion_global_scale_init: 0.01
+  fusion_physical_scale_init: 0.01
+  physical_cyclic_lags: [0, 1, 2, 4, 8]
+  physical_polyphase_branches: 8
+  physical_symbol_orders: [2, 4, 8]
+  physical_min_cyclic_freq: 0.015625
+  physical_max_cyclic_freq: 0.125
+  physical_cyclic_temperature: 0.25

@@ -1,0 +1,12 @@
+# Stage 275: direct depth/compute control for Stage 274.
+# Preserve the same 15 WaveNet blocks and dilation schedule, with no Mamba path.
+model_config:
+
+  model_type: icassp_baseline_wavenet
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 15
+  dilation_cycle_length: 10

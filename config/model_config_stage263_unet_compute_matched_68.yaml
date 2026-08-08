@@ -1,0 +1,14 @@
+# Stage 263: strict ICASSP official-UNet architecture with width k=68.
+# It increases only the width, so it is a clean compute-matched baseline rather
+# than a new architectural contribution.  The compute target is the public
+# WaveNet baseline at the challenge waveform length.
+model_config:
+  model_type: icassp_baseline_unet
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+  k_neurons: 68
+  k_sz: 3
+  long_k_sz: 101
+  dropout_first: 0.25
+  dropout_rest: 0.50

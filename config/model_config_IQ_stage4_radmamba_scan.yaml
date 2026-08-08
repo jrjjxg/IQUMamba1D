@@ -1,0 +1,27 @@
+# IQUMamba1D_RadMambaScan - stage-4 IQUMamba with raw I/Q STFT adapter.
+#
+# Keeps the original IQUMamba MambaLayer main path and injects a lightweight
+# time-frequency adapter initialized to zero.
+
+model_config:
+  model_type: iqumamba_radmamba_scan
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  rfscan_chunk_size: 256
+  rfscan_shift_size: null
+  rfscan_conv_kernel_size: 5
+  rfscan_residual_scale_init: 0.0
+  rfscan_condition_scale_init: 0.0
+  rfscan_stft_n_fft: 256
+  rfscan_stft_hop_length: 64
+  rfscan_stft_win_length: null
+  rfscan_stft_freq_bins: 32

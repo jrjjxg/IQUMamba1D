@@ -1,0 +1,24 @@
+model_config:
+  model_type: bimamba_hydra
+
+  # Strict Stage-12 geometry: four U-Net stages, Hydra only at stages 1 and 3.
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  bimamba_apply_stages: [1, 3]
+  bimamba_residual_scale_init: 1.0
+
+  # Official Hydra defaults (quasiseparable bidirectional matrix mixer).
+  hydra_d_state: 64
+  hydra_d_conv: 7
+  hydra_expand: 2
+  hydra_headdim: 64
+  hydra_ngroups: 1
+  hydra_chunk_size: 256
+  hydra_prefer_fused_scan: true

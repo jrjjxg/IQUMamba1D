@@ -1,0 +1,21 @@
+# RF Challenge adaptation of Stage 299: Stage-290 strict-complex input stem
+# plus Stage-295 complex-state selective SSMs.
+model_config:
+  model_type: iqumamba_stage4_complex_stem_complex_state
+  input_channels: 2
+  num_classes: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  complex_stem_enable: true
+  complex_norm_eps: 1.0e-6
+  mamba_d_state: 8
+  mamba_d_conv: 4
+  mamba_expand: 2
+  scan_backend: auto
+  scan_checkpoint: true

@@ -1,0 +1,15 @@
+# Stage 285 (C3): one complete complex dilation cycle followed by one ordinary
+# real dilation cycle. This tests whether complex local feature extraction is
+# sufficient without constraining the entire separator.
+model_config:
+  model_type: icassp_complex_wavenet
+  input_channels: 2
+  num_classes: 2
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  complex_layers: 10
+  strict_complex_output: false
+  use_conjugate_adapter: false
+  complex_norm_enable: false
+  complex_norm_eps: 1.0e-6

@@ -1,0 +1,23 @@
+model_config:
+  model_type: tiger
+
+  input_channels: 2
+  num_classes: 4
+
+  tiger_config:
+    n_srcs: 2
+    # 较大窗口 → T帧数从65降至33，freq_path/frame_path tensor块更大，GPU利用率更高
+    n_fft: 512
+    hop_length: 128
+    win_length: 512
+    center: true
+    normalize_input: true
+    eps: 1.0e-8
+    # 宽度与深度
+    out_channels: 128
+    in_channels: 256      # 原512 → 256，减少UConvBlock内部通道，降显存
+    num_blocks: 4         # 原16 → 4，速度4x提升，RF信号结构比语音简单，足够
+    upsampling_depth: 4
+    att_n_head: 4
+    att_hid_chan: 4
+    nband: 16             # 子带数加倍，每带32频点，与更大的n_fft配合更均衡

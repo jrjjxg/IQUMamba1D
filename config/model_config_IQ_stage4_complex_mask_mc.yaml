@@ -1,0 +1,30 @@
+model_config:
+
+  model_type: iqumamba_complex_mask_mc
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Decoder logits parameterize complex masks M_k.  The mask-sum constraint
+  # enforces sum_k real(M_k)=1 and sum_k imag(M_k)=0 before applying M_k*x_mix.
+  mask_bound: 4.0
+  mask_sum_constraint: true
+  mask_apply_projection: true
+  mask_project_deep_supervision: true
+  mask_logit_scale_init: 0.1
+
+  # The mask sum already gives analytic consistency, so uniform projection is
+  # least invasive.  Switch to energy if you want confidence-weighted residuals.
+  mc_weight_mode: uniform
+  mc_weight_power: 1.0
+  mc_min_weight: 0.0
+  mc_eps: 1.0e-8
+  mc_detach_weights: false
+  mc_apply_train: true
+  mc_apply_eval: true

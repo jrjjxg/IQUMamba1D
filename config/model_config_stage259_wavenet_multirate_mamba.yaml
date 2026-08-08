@@ -1,0 +1,21 @@
+# Stage 259: replace two WaveNet dilation cycles with one low-rate Mamba path.
+# WaveNet(10) -> normalized skip -> learned stride-4 UniMamba -> output head.
+model_config:
+
+  model_type: icassp_wavenet_multirate_mamba
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 10
+  dilation_cycle_length: 10
+
+  # The Mamba sequence has 40960 / 4 = 10240 tokens for a challenge frame.
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01

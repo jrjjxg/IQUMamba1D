@@ -1,0 +1,24 @@
+# IQUBiMamba1D_LK — MIT-inspired Large-Kernel stem
+#
+# Key change from model_config_bimamba.yaml:
+#   stem_kernel_size: 33   (was 3, covers ≈ sps×span structural scale)
+#   stem_channels:   128   (was 32, more first-layer filters per MIT recommendation)
+#
+# All downstream stages are IDENTICAL to the original BiMamba config.
+
+model_config:
+  model_type: bimamba_lk
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # MIT-inspired large-kernel stem parameters
+  stem_kernel_size: 33     # ≈ sps(4) × span(8), covers structural scale
+  stem_channels: 128       # 4× original (MIT suggests up to 20×)

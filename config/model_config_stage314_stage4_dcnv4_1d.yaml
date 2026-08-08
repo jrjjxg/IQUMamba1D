@@ -1,0 +1,19 @@
+# CVPR 2024 DCNv4 1D with group-local offsets/masks and no softmax.
+model_config:
+  model_type: iqumamba_recent_rf
+  rf_module_type: dcnv4
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  rf_residual_scale_init: 0.05
+  rf_apply_stages: [0, 1]
+  rf_points: 5
+  rf_groups: 4
+  rf_offset_scale: 1.0
+  rf_center_feature_scale: true

@@ -1,0 +1,26 @@
+model_config:
+  model_type: bimamba_gainphase
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Gain/Phase-Parameterized Channel Consistency:
+  #   x_mix ~= sum_k gain_k * exp(j phase_k) * s_k
+  # The layer estimates per-source gain/phase, computes residual in the
+  # observed mixture domain, and maps the correction back to source domain.
+  gp_hidden_channels: 32
+  gp_kernel_size: 7
+  gp_max_gain_db: 12.0
+  gp_max_phase_deg: 180.0
+  gp_weight_mode: energy
+  gp_min_weight: 1.0e-3
+  gp_correction_strength_init: 1.0
+  gp_apply_train: true
+  gp_apply_eval: true

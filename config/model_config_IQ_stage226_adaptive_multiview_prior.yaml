@@ -1,0 +1,31 @@
+# Stage 226: evidence-routed multi-view prior adapter.
+# The Stage-4 IQUMamba backbone is unchanged.  The input adapter keeps an
+# identity/null path and softly routes cyclic, phase/frequency and pulse-scale
+# residual views using mixture-only evidence.
+model_config:
+  model_type: iqumamba_adaptive_multiview_prior
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  adaptive_view_evidence_lags: [1, 2, 4, 8, 16, 32, 64]
+  adaptive_view_cyclic_lags: [1, 2, 4, 8, 16, 32]
+  adaptive_view_cyclic_top_k: 2
+  adaptive_view_cyclic_min_freq: 0.0078125
+  adaptive_view_cyclic_max_freq: 0.25
+
+  adaptive_view_pulse_rolloffs: [0.2, 0.35, 0.5]
+  adaptive_view_pulse_kernel_size: 31
+  adaptive_view_hidden_channels: 8
+  adaptive_view_router_hidden_channels: 16
+  adaptive_view_identity_bias: 2.0
+  adaptive_view_router_temperature: 1.0
+  adaptive_view_max_delta: 0.15
+  adaptive_view_max_scale: 0.2
+  adaptive_view_scale_init: 0.01

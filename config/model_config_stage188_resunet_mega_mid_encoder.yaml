@@ -1,0 +1,19 @@
+model_config:
+  model_type: resunet1d_mega_mid_encoder
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # MEGA-style moving-average gates at mid-resolution encoder stages.
+  mega_stages: [1, 2]
+  ema_kernel_size: 63
+  expansion: 2.0
+  dropout: 0.0
+  residual_scale_init: 0.05

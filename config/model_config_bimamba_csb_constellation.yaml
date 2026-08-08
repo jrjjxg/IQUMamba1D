@@ -1,0 +1,38 @@
+model_config:
+  model_type: bimamba_csb_constellation
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Complex stem on raw IQ
+  complex_stem_hidden_channels: 32
+  complex_stem_kernel_size: 5
+
+  # Complex refinement bridge at the deepest encoder stage
+  complex_bottleneck_hidden_channels: 128
+  complex_bottleneck_num_blocks: 3
+  complex_bottleneck_kernel_size: 5
+  complex_bottleneck_dilation_growth: 2
+  complex_bottleneck_zero_init: true
+
+  # Soft constellation-guided residual refinement head
+  constellation_type: psk
+  constellation_order: 8
+  cgr_hidden_channels: 48
+  cgr_kernel_size: 7
+  cgr_temperature: 0.25
+  cgr_dropout: 0.0
+  cgr_gate_init: 0.1
+  cgr_residual_scale_init: 1.0
+  cgr_use_mixture_residual: true
+  cgr_zero_init: true
+  cgr_refine_deep_supervision: false
+  cgr_apply_train: true
+  cgr_apply_eval: true

@@ -1,0 +1,26 @@
+# Stage 98 - stage42 ResUNet with local-global Mamba embedding.
+#
+# Motivation:
+#   Inspired by MambaIR-style local enhancement: keep local waveform detail with
+#   depthwise convolution, while a gated Mamba branch handles long-range context.
+
+model_config:
+  model_type: resunet1d_mamba_localglobal
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  mamba_embed_stages: [3, 4]
+  mamba_embed_d_state: 16
+  mamba_embed_d_conv: 4
+  mamba_embed_expand: 2
+  mamba_embed_scale_init: 0.01
+  mamba_embed_local_kernel_size: 9
+  mamba_embed_gate_hidden: 64

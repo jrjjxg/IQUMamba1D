@@ -1,0 +1,26 @@
+# IQUMamba1D_BlindCycloFRESH - stage-4 IQUMamba with a learnable cyclic-frequency input adapter.
+# This variant does not use samples-per-symbol metadata or fixed symbol-rate harmonics.
+# Frequencies are normalized cycles/sample and are learned as:
+#   f = f_base + max_delta * tanh(delta).
+
+model_config:
+  model_type: iqumamba_blind_cyclofresh
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Normalized cyclic-frequency candidates in cycles/sample.
+  blind_cyclofresh_freqs: [-0.24, -0.18, -0.12, -0.06, 0.0, 0.06, 0.12, 0.18, 0.24]
+  blind_cyclofresh_max_delta: 0.03
+  blind_cyclofresh_hidden_channels: 8
+  blind_cyclofresh_kernel_size: 9
+  blind_cyclofresh_scale_init: 0.01
+  blind_cyclofresh_gate_hidden: 8
+  blind_cyclofresh_zero_init: true

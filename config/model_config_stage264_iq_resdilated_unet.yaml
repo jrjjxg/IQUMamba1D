@@ -1,0 +1,25 @@
+# Stage 264: IQ-ResDilated U-Net.
+# A WaveNet-compute-level U-Net with learned analysis filters, shallow gated
+# multi-dilation context, decoder-conditioned skip gates, and bottleneck BiMamba.
+model_config:
+  model_type: iq_resdilated_unet
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  k_neurons: 64
+  k_sz: 3
+  long_k_sz: 101
+  dropout_first: 0.10
+  dropout_rest: 0.10
+
+  # Bottleneck widths for the residual dilation blocks at encoder levels 0/1.
+  shallow_dilated_channels: [128, 64]
+  skip_gate_groups: 16
+
+  use_bottleneck_bimamba: true
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01

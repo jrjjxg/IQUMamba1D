@@ -1,0 +1,17 @@
+# Stage 218: one global Mamba scan plus opposite-direction local context.
+model_config:
+  model_type: bimamba_alternating_global_local
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  bimamba_apply_stages: [1, 3]
+  bimamba_local_kernel_size: 5
+  bimamba_local_gate_init: 0.1
+

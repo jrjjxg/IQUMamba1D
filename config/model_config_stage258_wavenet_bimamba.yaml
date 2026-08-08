@@ -1,0 +1,20 @@
+# Stage 258: public ICASSP WaveNet backbone plus one bidirectional Mamba
+# fusion block after the normalized WaveNet skip aggregation.
+model_config:
+
+  model_type: icassp_wavenet_bimamba
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime (4 for ordinary two-source BSS).
+  num_classes: 2
+
+  # Same WaveNet backbone as Stage 26.
+  residual_channels: 128
+  residual_layers: 30
+  dilation_cycle_length: 10
+
+  # Independent forward and reverse scans. This is for offline, full-frame BSS.
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01

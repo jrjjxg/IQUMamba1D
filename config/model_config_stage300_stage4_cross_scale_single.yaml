@@ -1,0 +1,21 @@
+# Stage 300: original Stage-4 unidirectional IQUMamba + Stage-235
+# single-scale compressed global cross-attention.
+model_config:
+  model_type: iqumamba_cross_scale_single
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  cross_scale_query_stages: [2]
+  cross_scale_global_stage: 3
+  cross_scale_kv_tokens: 64
+  cross_scale_num_heads: 4
+  cross_scale_dropout: 0.0
+  cross_scale_residual_scale_init: 0.01
+  cross_scale_evidence_gate: false

@@ -1,0 +1,22 @@
+model_config:
+  model_type: resunet1d_deformable_temporal_bottleneck
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  use_complex_mask: false
+
+  # DAT/DAT++, CVPR 2022/arXiv 2023: https://github.com/LeapLabTHU/DAT
+  attention_heads: 8
+  deform_points: 8
+  offset_kernel_size: 5
+  offset_range: 8.0
+  attention_dropout: 0.05
+  projection_dropout: 0.0
+  bottleneck_scale_init: 0.05

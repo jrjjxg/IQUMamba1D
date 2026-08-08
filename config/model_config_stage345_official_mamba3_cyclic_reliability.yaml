@@ -1,0 +1,29 @@
+# Stage 345: official fused Mamba-3 plus fixed cyclic anchoring and reliability.
+model_config:
+  model_type: iqumamba_official_rf_mamba3
+  rf_mamba3_variant: cyclic_reliability
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  memory_d_state: 128
+  memory_expand: 2
+  memory_headdim: 64
+  memory_ngroups: 1
+  memory_rope_fraction: 0.5
+  memory_is_outproj_norm: false
+  memory_chunk_size: 64
+  cyclic_anchor_enable: true
+  dynamic_cyclic_enable: false
+  cyclic_frequencies: [0.0, 0.015625, -0.015625, 0.03125, -0.03125, 0.05, -0.05, 0.025]
+  cyclic_max_frequency_delta: 0.01
+  reliability_enable: true
+  reliability_hidden: 8
+  reliability_floor: 0.05
+  reliability_init: 0.995
+  shared_conditioning_enable: false

@@ -1,0 +1,27 @@
+model_config:
+
+  model_type: iqumamba_noise_aware_mc
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Noisy-mixture consistency:
+  #   source_1 + source_2 + residual_noise = input_mixture
+  # Unlike hard source-only MC, this does not force AWGN/channel residuals into
+  # the clean source targets.
+  noise_mc_apply_projection: true
+  noise_mc_project_during_train: true
+  noise_mc_project_during_eval: true
+  noise_mc_source_weight: 0.25
+  noise_mc_noise_weight: 1.0
+  noise_mc_eps: 1.0e-8
+
+  noise_head_hidden_channels: 32
+  noise_head_kernel_size: 7
+  noise_head_zero_init: true

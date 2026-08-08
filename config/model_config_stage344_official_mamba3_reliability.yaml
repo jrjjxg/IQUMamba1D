@@ -1,0 +1,27 @@
+# Stage 344: official fused Mamba-3 plus RF reliability-controlled time steps.
+model_config:
+  model_type: iqumamba_official_rf_mamba3
+  rf_mamba3_variant: reliability
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  memory_d_state: 128
+  memory_expand: 2
+  memory_headdim: 64
+  memory_ngroups: 1
+  memory_rope_fraction: 0.5
+  memory_is_outproj_norm: false
+  memory_chunk_size: 64
+  cyclic_anchor_enable: false
+  dynamic_cyclic_enable: false
+  reliability_enable: true
+  reliability_hidden: 8
+  reliability_floor: 0.05
+  reliability_init: 0.995
+  shared_conditioning_enable: false

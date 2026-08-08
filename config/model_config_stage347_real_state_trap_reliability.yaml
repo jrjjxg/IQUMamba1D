@@ -1,0 +1,28 @@
+# Stage 347: Real-state Mamba + trapezoidal discretization + reliability gating.
+# Ablation counterpart to Stage 333 (RF Mamba-3 Combined):
+#   Stage 333 = trapezoidal + cyclic_poles + reliability   (complex state)
+#   Stage 347 = trapezoidal + [no poles]  + reliability   (real state only)
+# theta is frozen to 0 post-init: a_imag=0 throughout, scan is purely real.
+# This isolates the "梯形+门控" contribution from the complex-pole contribution.
+model_config:
+  model_type: iqumamba_real_state_trap_reliability
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  mamba_d_state: 8
+  mamba_d_conv: 4
+  mamba_expand: 2
+  scan_backend: auto
+  scan_checkpoint: true
+  mamba_discretization: exponential_trapezoidal
+  trapezoid_lambda_init: 0.5
+  reliability_enable: true
+  reliability_hidden: 8
+  reliability_floor: 0.05
+  reliability_init: 0.995

@@ -1,0 +1,25 @@
+model_config:
+
+  model_type: complex_sourceslot
+  input_channels: 2
+  num_classes: 4
+
+  complex_sourceslot_config:
+    n_srcs: 2
+    slot_channels: 64
+    kernel_size: 9
+    hidden_dim: 128
+    n_layers: 8
+    temporal_kernel_size: 5
+    dilation_cycle: 4
+    source_attention_heads: 4
+    dropout: 0.0
+    identity_split_init: true
+    slot_residual_scale_init: 0.0
+
+    apply_projection: true
+    mc_weight_mode: uniform
+    mc_weight_power: 1.0
+    mc_min_weight: 0.0
+    mc_eps: 0.00000001
+    mc_detach_weights: false

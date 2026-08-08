@@ -1,0 +1,28 @@
+# IQUTransformer1D - Fixed patch/time-token Transformer baseline
+#
+# Compared with model_config_transformer1d.yaml:
+#   - Keeps the same U-Net + Transformer backbone
+#   - Disables adaptive token switching
+#   - Forces every Transformer block to use time/patch tokens
+#
+# This is often the most natural Transformer baseline for 1D communication
+# signals because temporal order carries direct physical meaning.
+
+model_config:
+  model_type: transformer1d
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  transformer_n_heads: 4
+  transformer_dropout: 0.0
+  transformer_ffn_expand: 4
+  transformer_token_layout: patch
+  transformer_pos_encoding: sinusoidal

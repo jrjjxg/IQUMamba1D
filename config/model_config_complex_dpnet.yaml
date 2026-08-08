@@ -1,0 +1,27 @@
+model_config:
+
+  model_type: complex_dpnet
+  input_channels: 2
+  num_classes: 4
+
+  complex_dpnet_config:
+    n_srcs: 2
+    feature_channels: 64
+    kernel_size: 9
+    hidden_dim: 128
+    rnn_hidden: 128
+    n_layers: 6
+    chunk_size: 128
+    hop_size: 64
+    dropout: 0.0
+    mask_bound: 4.0
+    mask_sum_constraint: true
+    identity_init: true
+    mask_head_zero_init: true
+
+    apply_projection: true
+    mc_weight_mode: uniform
+    mc_weight_power: 1.0
+    mc_min_weight: 0.0
+    mc_eps: 0.00000001
+    mc_detach_weights: false

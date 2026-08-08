@@ -1,0 +1,29 @@
+# RF Challenge adaptation of Stage 261 (interleaved WaveNet + UniMamba).
+#
+# The ICASSP 2024 single-channel task estimates one known complex SOI, so the
+# model receives one complex mixture (I/Q) and produces one complex SOI (I/Q).
+# ``rfchallenge.models.build_single_soi_model`` enforces these three settings
+# at runtime as well, preventing an accidental two-source BSS head.
+model_config:
+  model_type: icassp_wavenet_interleaved_mamba
+  input_channels: 2
+  num_classes: 2
+  deep_supervision: false
+
+  # Stage 261: ten dilated WaveNet blocks, a learned multi-rate UniMamba
+  # residual injection, then ten further WaveNet blocks.
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  # The competition frame length is 40,960.  The learned stride-4 frontend
+  # therefore presents 10,240 tokens to Mamba and reconstructs the original
+  # waveform length before WaveNet block 11.
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01

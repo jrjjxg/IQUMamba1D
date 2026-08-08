@@ -1,0 +1,33 @@
+# IQUBiMamba1D_CSB_CMASC - CSB + complex mixture-consistent ASC
+#
+# Keeps the CSB encoder unchanged and replaces the generic ASC skip processor
+# with phase-aligned, feature-domain mixture-residual gated skip fusion.
+
+model_config:
+  model_type: bimamba_csb_cmasc
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Complex stem on raw IQ
+  complex_stem_hidden_channels: 32
+  complex_stem_kernel_size: 5
+
+  # Complex refinement bridge at the deepest encoder stage
+  complex_bottleneck_hidden_channels: 128
+  complex_bottleneck_num_blocks: 3
+  complex_bottleneck_kernel_size: 5
+  complex_bottleneck_dilation_growth: 2
+  complex_bottleneck_zero_init: true
+
+  # Complex mixture-consistent ASC knobs
+  cmasc_gate_hidden: 64
+  cmasc_residual_scale_init: 0.5
+  cmasc_eps: 0.000001

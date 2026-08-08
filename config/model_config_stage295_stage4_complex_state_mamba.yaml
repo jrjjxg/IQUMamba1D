@@ -1,0 +1,24 @@
+# Stage 295: baseline Stage-4 IQUMamba with complex-state selective SSMs.
+# Only the diagonal state transition of each Mamba block gains imaginary
+# parts (decaying rotations, S4D-Lin init; data-dependent dt makes the
+# rotation angles selective, i.e. the Mamba-3 "complex state as rotation"
+# formulation). The macro-block and the rest of the network stay real and
+# identical to stage4, so stage4 vs stage295 isolates real-vs-complex state
+# dynamics. Not phase-equivariant by design (parallel track to 290-294).
+model_config:
+  model_type: iqumamba_stage4_complex_state
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  mamba_d_state: 8          # complex states per channel (= 16 real state dims)
+  mamba_d_conv: 4
+  mamba_expand: 2
+  # auto: fused official selective_scan CUDA on GPU, PyTorch fallback on CPU.
+  scan_backend: auto
+  scan_checkpoint: true

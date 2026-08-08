@@ -1,0 +1,23 @@
+# Stage 348: S4D-Lin complex poles with reliability-controlled state time.
+# Token-dependent dt makes the SSM time varying, so CUDA uses the official
+# fused complex selective scan instead of Stage 336's fixed-kernel FFT.
+# The readout is phi_1-calibrated so centered-gate initialization exactly
+# matches Stage 336's fixed-step ZOH S4D-Lin recurrence.
+model_config:
+  model_type: iqumamba_stage4_s4d_reliability
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  memory_d_state: 64
+  memory_dropout: 0.0
+  memory_dt_min: 0.001
+  memory_dt_max: 0.1
+  reliability_hidden: 8
+  reliability_floor: 0.05
+  reliability_init: 0.995

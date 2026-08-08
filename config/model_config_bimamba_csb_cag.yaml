@@ -1,0 +1,33 @@
+# IQUBiMamba1D_CSB_CAG - CSB + scaled residual alpha + complex-aware channel gate
+#
+# Keeps CSB intact and changes only temporal-token BiMamba stages.  Each Mamba
+# branch predicts a residual delta, scaled by learnable alpha and modulated by a
+# gate computed from paired-channel magnitude and phase statistics.
+
+model_config:
+  model_type: bimamba_csb_cag
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+
+  # Complex stem on raw IQ
+  complex_stem_hidden_channels: 32
+  complex_stem_kernel_size: 5
+
+  # Complex refinement bridge at the deepest encoder stage
+  complex_bottleneck_hidden_channels: 128
+  complex_bottleneck_num_blocks: 3
+  complex_bottleneck_kernel_size: 5
+  complex_bottleneck_dilation_growth: 2
+  complex_bottleneck_zero_init: true
+
+  # Scaled BiMamba residual and complex-aware channel gate
+  cag_alpha_init: 0.1
+  cag_gate_hidden: 64

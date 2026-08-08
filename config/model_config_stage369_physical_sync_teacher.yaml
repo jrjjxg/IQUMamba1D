@@ -1,0 +1,58 @@
+# Stage 369: high-SNR pretrained teacher for the faithful Stage-370 pipeline.
+# Uses real MATLAB generator parameters and the original four-level Stage-4.
+model_config:
+  model_type: iqumamba_physical_sync_rtn
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  sync_hidden: 64
+  sync_lags: [1, 2, 4, 8, 16]
+  sync_sps_candidates: [8, 10, 14, 16, 20, 25, 32, 40]
+  sync_snr_min_db: -10.0
+  sync_snr_max_db: 30.0
+  sync_max_cfo_cycles_per_sample: 1.0e-4
+  sync_max_phase_drift_rad_per_sample: 1.0e-4
+  sync_sps_temperature: 1.0
+  sync_film_max_delta: 0.10
+  rtn_residual_scale_init: 0.10
+  sync_eps: 1.0e-6
+
+  # Only MATLAB datasets with generator metadata are scientifically valid here.
+  sync_metadata_enable: true
+  sync_physical_require_metadata: true
+  sync_physical_supervision_weight: 0.10
+  sync_physical_cfo_weight: 1.0
+  sync_physical_phase_weight: 1.0
+  sync_physical_timing_weight: 1.0
+  sync_physical_sps_weight: 1.0
+  # Existing files generally do not store this exact value; keep it masked/off.
+  sync_physical_drift_weight: 0.0
+  sync_physical_beta: 0.1
+  sync_snr_aux_weight: 0.05
+  sync_snr_aux_min_db: -10.0
+  sync_snr_aux_max_db: 30.0
+  sync_snr_aux_beta: 0.1
+  sync_cfo_scale: 1.0e-4
+  sync_phase_drift_scale: 1.0e-4
+
+  # Pretrain the knowledgeable teacher on the high-SNR subset.
+  training_snr_floor_db: 10.0
+  validation_snr_floor_db: 10.0
+  cross_snr_enable: false
+  cross_snr_ema_teacher_enable: false
+  sync_cross_snr_consistency_weight: 0.0
+
+  # Label-aware augmentation updates phase/timing metadata in the loader.
+  train_aug_enable: true
+  train_aug_source_phase_jitter_deg: 12.0
+  train_aug_source_gain_jitter_db: 1.0
+  train_aug_max_common_time_shift: 8
+  train_aug_global_phase_rotation: true
+  train_mix_enable: false

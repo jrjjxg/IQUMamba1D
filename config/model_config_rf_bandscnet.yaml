@@ -1,0 +1,29 @@
+model_config:
+
+  model_type: rf_bandscnet
+  input_channels: 2
+  num_classes: 4
+
+  rf_bandscnet_config:
+    n_srcs: 2
+    n_fft: 256
+    hop_length: 64
+    win_length: 256
+    center: true
+    normalize_input: true
+    eps: 0.00000001
+
+    n_bands: 16
+    hidden_dim: 96
+    rnn_hidden: 96
+    n_layers: 6
+    dropout: 0.0
+    mask_bound: 4.0
+    mask_sum_constraint: true
+    mask_head_zero_init: true
+
+    apply_projection: true
+    mc_weight_mode: uniform
+    mc_weight_power: 1.0
+    mc_min_weight: 0.0
+    mc_detach_weights: false

@@ -1,0 +1,13 @@
+model_config:
+  model_type: iq_bandsplit
+  n_srcs: 2
+  n_fft: 256
+  hop_length: 64
+  win_length: 256
+  center: True
+  n_bands: 16
+  hidden_dim: 128
+  n_mamba_layers: 6
+  d_state: 16
+  d_conv: 4
+  expand: 2

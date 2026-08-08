@@ -1,0 +1,8 @@
+model_config:
+  # Base ResUNet setup (matching NoASC)
+  residual_scale_init: 0.1
+  
+  # DCA-lite hyperparameters
+  attn_dim: 64
+  num_heads: 4
+  max_tokens: 256

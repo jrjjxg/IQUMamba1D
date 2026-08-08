@@ -1,0 +1,25 @@
+# IQUMamba1D_ComplexAdapter - stage-4 IQUMamba with local complex-aware adapters.
+#
+# This keeps the original IQUMamba MambaLayer backbone unchanged.  The adapters
+# are Cauchy-Riemann tied residual convs with amplitude gates and zero-init, so
+# the model starts close to the original stage-4 IQUMamba.
+
+model_config:
+  model_type: iqumamba_complex_adapter
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  complex_adapter_hidden_channels: 8
+  complex_adapter_kernel_size: 5
+  complex_adapter_scale_init: 0.01
+  complex_adapter_use_input: true
+  complex_adapter_use_output: true
+  complex_adapter_zero_init: true

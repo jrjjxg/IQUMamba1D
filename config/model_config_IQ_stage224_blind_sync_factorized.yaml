@@ -1,0 +1,20 @@
+# Stage 224: Stage-4 IQUMamba with mixture-only blind synchronization factorization.
+model_config:
+  model_type: iqumamba_blind_sync_factorized
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Global lag-correlations provide relative CFO/delay evidence.  The local
+  # branch is gated by these statistics before the unchanged Stage-4 backbone.
+  sync_hidden: 12
+  sync_kernel_size: 5
+  sync_scale_init: 0.01
+  sync_lags: [1, 2, 4, 8]
+  sync_eps: 0.000001

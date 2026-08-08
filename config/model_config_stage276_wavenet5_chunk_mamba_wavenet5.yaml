@@ -1,0 +1,26 @@
+# Stage 276: local WaveNet -> ordered chunk Mamba -> strong fusion -> local WaveNet.
+# Each WaveNet side uses one complete local dilation cycle [1, 2, 4, 8, 16].
+model_config:
+
+  model_type: icassp_wavenet_chunk_mamba_strong_fusion
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 10
+  dilation_cycle_length: 5
+  mamba_insert_after_block: 5
+
+  # 4096 samples -> 127 overlapping tokens; 40960 samples -> 1279 tokens.
+  mamba_channels: 64
+  mamba_chunk_size: 64
+  mamba_chunk_hop: 32
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+
+  # Equal-energy local/global participation from the first optimization step.
+  mamba_fusion_gain_init: 1.0
+  mamba_fusion_norm_eps: 1.0e-6

@@ -1,0 +1,28 @@
+model_config:
+
+  model_type: multires_stft_mask
+  input_channels: 2
+  num_classes: 4
+
+  multires_stft_mask_config:
+    n_srcs: 2
+    n_ffts: [128, 256, 512]
+    hop_lengths: [32, 64, 128]
+    win_lengths: [128, 256, 512]
+    center: true
+    normalize_input: true
+    hidden_dim: 128
+    n_blocks: 6
+    kernel_size: 5
+    dilation_cycle: 4
+    dropout: 0.0
+    mask_bound: 4.0
+    mask_sum_constraint: true
+    mask_head_zero_init: true
+    eps: 0.00000001
+
+    apply_projection: true
+    mc_weight_mode: uniform
+    mc_weight_power: 1.0
+    mc_min_weight: 0.0
+    mc_detach_weights: false

@@ -1,0 +1,16 @@
+model_config:
+  model_type: "esd_mask_wrapper"
+  input_channels: 2
+  num_classes: 4
+  enc_channels: 256
+  kernel_size: 16
+  stride: 8
+  mask_act: "sigmoid"
+  n_stages: 5
+  features_per_stage: [64, 128, 256, 384, 512]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+  conv_bias: true

@@ -1,0 +1,27 @@
+model_config:
+
+  model_type: complex_attractor
+  input_channels: 2
+  num_classes: 4
+
+  complex_attractor_config:
+    n_srcs: 2
+    n_fft: 256
+    hop_length: 64
+    win_length: 256
+    center: true
+    normalize_input: true
+    embedding_dim: 64
+    hidden_dim: 96
+    rnn_hidden: 96
+    n_layers: 2
+    dropout: 0.0
+    attractor_temperature: 1.0
+    logit_scale_init: 0.0
+    eps: 0.00000001
+
+    apply_projection: true
+    mc_weight_mode: uniform
+    mc_weight_power: 1.0
+    mc_min_weight: 0.0
+    mc_detach_weights: false

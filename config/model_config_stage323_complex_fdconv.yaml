@@ -1,0 +1,18 @@
+# Stage323: phase-aware complex FDConv IQ front-end plus the original Stage4.
+model_config:
+  model_type: iqumamba_complex_recent_rf
+  complex_rf_type: fdconv
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  # 16 complex channels correspond to 32 real feature degrees of freedom.
+  complex_hidden_channels: 16
+  complex_residual_scale_init: 0.05
+  complex_kernel_size: 31
+  complex_bands: 4

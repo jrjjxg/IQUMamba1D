@@ -1,0 +1,21 @@
+# Stage 262: Stage 261 with a bidirectional, offline Mamba injection.
+# WaveNet blocks 1--10 -> learned stride-4 BiMamba -> WaveNet blocks 11--20.
+model_config:
+
+  model_type: icassp_wavenet_interleaved_bimamba
+  input_channels: 2
+  # main.py sets this to 2 * num_sources at runtime.
+  num_classes: 2
+
+  residual_channels: 128
+  residual_layers: 20
+  dilation_cycle_length: 10
+  mamba_insert_after_block: 10
+
+  mamba_channels: 64
+  mamba_downsample_factor: 4
+  mamba_d_state: 16
+  mamba_d_conv: 4
+  mamba_expand: 2
+  mamba_dropout: 0.0
+  mamba_scale_init: 0.01

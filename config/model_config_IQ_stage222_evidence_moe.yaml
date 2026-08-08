@@ -1,0 +1,27 @@
+# Stage 222: Stage-4 IQUMamba with modulation-agnostic evidence-routed residual MoE.
+model_config:
+  model_type: iqumamba_evidence_moe
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Three shared residual experts: local, periodic and leakage correction.
+  # The identity route is always present and is favored at initialization.
+  evidence_moe_hidden_channels: 12
+  evidence_moe_max_delta: 0.15
+  evidence_moe_identity_bias: 1.5
+  evidence_moe_router_temperature: 1.0
+  evidence_moe_route_hard_eval: true
+  evidence_moe_lag_bank: [1, 2, 4, 8, 16, 32, 64, 128]
+  evidence_moe_return_route_aux: true
+
+  # Training-only counterfactual route supervision.
+  evidence_moe_route_supervision_enable: true
+  evidence_moe_route_loss_weight: 0.05
+  evidence_moe_route_target_temperature: 0.25

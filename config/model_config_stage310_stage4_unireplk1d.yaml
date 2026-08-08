@@ -1,0 +1,18 @@
+# CVPR 2024 UniRepLKNet block with official kernel-17 branches and BN fusion.
+model_config:
+  model_type: iqumamba_recent_rf
+  rf_module_type: unireplk
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  rf_residual_scale_init: 0.05
+  rf_apply_stages: [0, 1, 2]
+  rf_large_kernel: 17
+  rf_ffn_factor: 4
+  rf_layer_scale: 1.0e-6

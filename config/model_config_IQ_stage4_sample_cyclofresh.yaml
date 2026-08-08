@@ -1,0 +1,29 @@
+# IQUMamba1D_SampleCycloFRESH - stage-4 IQUMamba with per-sample
+# mixture-estimated cyclic-frequency FRESH input adapter.
+
+model_config:
+  model_type: iqumamba_sample_cyclofresh
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Uses only x=(I,Q).  This is safer when each item has a different dominant
+  # cyclostationary peak; it is slower than stage 82.
+  sample_cyclofresh_min_freq: 0.015625
+  sample_cyclofresh_max_freq: 0.125
+  sample_cyclofresh_default_freq: 0.03125
+  sample_cyclofresh_num_peaks: 1
+  sample_cyclofresh_guard_bins: 3
+  sample_cyclofresh_hidden_channels: 8
+  sample_cyclofresh_kernel_size: 9
+  sample_cyclofresh_scale_init: 0.01
+  sample_cyclofresh_gate_hidden: 8
+  sample_cyclofresh_reliability_floor: 0.25
+  sample_cyclofresh_zero_init: true

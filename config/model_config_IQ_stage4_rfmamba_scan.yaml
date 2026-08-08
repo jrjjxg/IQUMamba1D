@@ -1,0 +1,22 @@
+# IQUMamba1D_RFMambaScan - stage-4 IQUMamba with raw I/Q AP adapter.
+#
+# Keeps the original IQUMamba MambaLayer main path and injects a lightweight
+# amplitude/phase adapter initialized to zero.
+
+model_config:
+  model_type: iqumamba_rfmamba_scan
+
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  rfscan_freq_bands: 16
+  rfscan_gate_hidden: 64
+  rfscan_residual_scale_init: 0.0
+  rfscan_condition_scale_init: 0.0

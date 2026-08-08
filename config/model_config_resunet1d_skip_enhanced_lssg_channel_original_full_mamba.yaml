@@ -1,0 +1,38 @@
+# ==============================================================================
+# IQUResUNet1D Original Full BiMambaLayer + LSSG_Channel Skip Configuration
+# Stage 134 (Swin-UMamba Dagger / Full Mamba-UNet equivalent)
+# ==============================================================================
+
+# Core architecture parameters
+input_size: 4096
+input_channels: 2
+n_stages: 5
+features_per_stage: [32, 64, 128, 256, 320]
+kernel_sizes: [3, 3, 3, 3, 3]
+strides: [1, 2, 2, 2, 2]
+n_conv_per_stage: [2, 2, 2, 2, 2]
+num_classes: 4
+n_conv_per_stage_decoder: [2, 2, 2, 2]
+
+# General enhancements
+deep_supervision: False
+
+# ==============================================================================
+# BiMamba Encoder Settings
+# ==============================================================================
+# Which stages in the encoder should use BiMamba blocks instead of Identity.
+# [Stage1, Stage2, Stage3, Stage4, Stage5]
+# True means attach an Original BiMambaLayer at the end of that encoder stage.
+use_mamba_stages: [False, False, True, True, True]
+
+# ==============================================================================
+# BiMamba Decoder Settings
+# ==============================================================================
+use_decoder_mamba: True
+
+# ==============================================================================
+# Skip Connection Enhanced Configuration
+# ==============================================================================
+# For LSSG_Channel
+skip_mode: "lssg_channel"
+residual_scale_init: 0.1

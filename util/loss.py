@@ -1,8 +1,10 @@
+import math
+
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from itertools import permutations
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 
 _PERMUTATION_CACHE = {}
@@ -64,6 +66,41 @@ def _huber_pair_per_item(pred: torch.Tensor, target: torch.Tensor, delta: float 
     linear = abs_error - quadratic
     loss = 0.5 * quadratic ** 2 + delta * linear
     return loss.mean(dim=(-2, -1))
+
+
+def _phase_increment_pair_per_item(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """Rotation-invariant phase-step error for one complex source pair.
+
+    The phase increment is represented as a unit complex phasor instead of an
+    angle, avoiding the discontinuity at +/-pi. Target transition magnitude
+    down-weights near-zero samples whose phase is not reliable.
+    """
+
+    if pred.ndim != 3 or pred.size(1) != 2:
+        raise ValueError(f"Expected complex pair (B, 2, L), got {tuple(pred.shape)}")
+    if pred.shape[-1] < 2:
+        return pred.new_zeros((pred.shape[0],))
+
+    pred_i, pred_q = pred[:, 0], pred[:, 1]
+    tgt_i, tgt_q = target[:, 0], target[:, 1]
+    pred_real = pred_i[:, 1:] * pred_i[:, :-1] + pred_q[:, 1:] * pred_q[:, :-1]
+    pred_imag = pred_q[:, 1:] * pred_i[:, :-1] - pred_i[:, 1:] * pred_q[:, :-1]
+    tgt_real = tgt_i[:, 1:] * tgt_i[:, :-1] + tgt_q[:, 1:] * tgt_q[:, :-1]
+    tgt_imag = tgt_q[:, 1:] * tgt_i[:, :-1] - tgt_i[:, 1:] * tgt_q[:, :-1]
+
+    pred_norm = torch.sqrt(pred_real.square() + pred_imag.square() + eps)
+    tgt_norm = torch.sqrt(tgt_real.square() + tgt_imag.square() + eps)
+    pred_real, pred_imag = pred_real / pred_norm, pred_imag / pred_norm
+    tgt_real, tgt_imag = tgt_real / tgt_norm, tgt_imag / tgt_norm
+
+    target_weight = tgt_norm / tgt_norm.mean(dim=-1, keepdim=True).clamp_min(eps)
+    target_weight = target_weight.clamp(max=4.0)
+    phasor_error = (pred_real - tgt_real).square() + (pred_imag - tgt_imag).square()
+    return (target_weight * phasor_error).mean(dim=-1)
 
 
 def to_complex_sources(x: torch.Tensor, num_sources: int) -> torch.Tensor:
@@ -444,6 +481,47 @@ def pit_si_snr_loss(
     return -best_si_snr
 
 
+def constellation_kde_loss(pred: torch.Tensor, sigma: float = 0.1) -> torch.Tensor:
+    """
+    Computes Constellation KDE clustering loss.
+    pred: (B, 2*K, L)
+    Encourages the IQ scatter plot to form tight clusters (minimize entropy).
+    """
+    K = pred.shape[1] // 2
+    pred_c = to_complex_sources(pred, K)
+    
+    B, K_dim, _, L = pred_c.shape
+    
+    num_samples = min(128, L)
+    idx = torch.randperm(L, device=pred.device)[:num_samples]
+    
+    loss = 0.0
+    for k in range(K_dim):
+        src_iq = pred_c[:, k, :, idx] # (B, 2, num_samples)
+        src_iq_t = src_iq.transpose(1, 2) # (B, num_samples, 2)
+        
+        sq_norm = torch.sum(src_iq_t**2, dim=-1, keepdim=True)
+        dist_sq = sq_norm + sq_norm.transpose(1, 2) - 2 * torch.bmm(src_iq_t, src_iq)
+        
+        # Information Potential (KDE proxy)
+        V = torch.mean(torch.exp(-dist_sq / (2 * sigma**2)), dim=(1, 2))
+        
+        # Minimize -log(V)
+        loss += torch.mean(-torch.log(V + 1e-8))
+        
+    return loss / K_dim
+
+def pit_si_snr_constellation_loss(
+    outputs: torch.Tensor,
+    targets: torch.Tensor,
+    alpha: float = 0.1,
+    sigma: float = 0.1,
+    num_sources: int = None,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    si_snr = pit_si_snr_loss(outputs, targets, num_sources=num_sources, eps=eps)
+    kde = constellation_kde_loss(outputs, sigma=sigma)
+    return si_snr + alpha * kde
 def _is_tensor_sequence(value) -> bool:
     return isinstance(value, (list, tuple)) and all(torch.is_tensor(v) for v in value)
 
@@ -725,7 +803,7 @@ def pit_demod_aware_loss(
     return all_scores.min(dim=0).values.mean()
 
 
-def pit_si_snr_huber_loss(
+def _pit_si_snr_huber_permutation_scores(
     outputs: torch.Tensor,
     targets: torch.Tensor,
     alpha: float = 1.0,
@@ -734,9 +812,12 @@ def pit_si_snr_huber_loss(
     eps: float = 1e-8,
     delta: float = 1.0,
 ) -> torch.Tensor:
-    # Joint PIT on the combined objective:
-    #   min_perm mean_k [alpha * (-SI-SNR_k) + beta * Huber_k]
-    # This enforces one shared permutation for both terms.
+    """Return combined SI-SNR+Huber costs for every source permutation.
+
+    The returned shape is ``(num_permutations, batch)``. Keeping this helper
+    shared ensures the ordinary PIT loss and the identity-anchored variant
+    optimize exactly the same separation objective.
+    """
     num_sources = _infer_num_sources(outputs, targets, num_sources)
     preds = _split_iq_sources(outputs, num_sources)
     tgts = _split_iq_sources(targets, num_sources)
@@ -750,9 +831,141 @@ def pit_si_snr_huber_loss(
             total = total + alpha * si_term + beta * huber_term
         perm_scores.append(total / num_sources)
 
-    all_scores = torch.stack(perm_scores, dim=0)
+    return torch.stack(perm_scores, dim=0)
+
+
+def pit_si_snr_huber_loss(
+    outputs: torch.Tensor,
+    targets: torch.Tensor,
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    num_sources: int = None,
+    eps: float = 1e-8,
+    delta: float = 1.0,
+) -> torch.Tensor:
+    # Joint PIT on the combined objective:
+    #   min_perm mean_k [alpha * (-SI-SNR_k) + beta * Huber_k]
+    # This enforces one shared permutation for both terms.
+    all_scores = _pit_si_snr_huber_permutation_scores(
+        outputs,
+        targets,
+        alpha=alpha,
+        beta=beta,
+        num_sources=num_sources,
+        eps=eps,
+        delta=delta,
+    )
     best_scores = all_scores.min(dim=0).values
     return best_scores.mean()
+
+
+def pit_si_snr_huber_identity_anchor_loss(
+    outputs: torch.Tensor,
+    targets: torch.Tensor,
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    identity_anchor_weight: float = 0.05,
+    identity_anchor_margin: float = 0.2,
+    identity_anchor_temperature: float = 0.5,
+    num_sources: int = None,
+    eps: float = 1e-8,
+    delta: float = 1.0,
+) -> torch.Tensor:
+    """PIT separation loss with a weak, vanishing fixed-identity tie-breaker.
+
+    PIT remains the main objective. The anchor compares the fixed identity
+    permutation against the best non-identity permutation and applies a smooth
+    ranking penalty only when identity is not better by ``margin``:
+
+        temperature * softplus(
+            (identity_cost - best_other_cost + margin) / temperature
+        )
+
+    Unlike adding a second full fixed SI-SNR loss, this term approaches zero
+    once the output slots have a stable identity, minimizing interference with
+    permutation-invariant separation quality.
+    """
+    if identity_anchor_weight < 0.0:
+        raise ValueError("identity_anchor_weight must be >= 0")
+    if identity_anchor_margin < 0.0:
+        raise ValueError("identity_anchor_margin must be >= 0")
+    if identity_anchor_temperature <= 0.0:
+        raise ValueError("identity_anchor_temperature must be > 0")
+
+    resolved_sources = _infer_num_sources(outputs, targets, num_sources)
+    all_scores = _pit_si_snr_huber_permutation_scores(
+        outputs,
+        targets,
+        alpha=alpha,
+        beta=beta,
+        num_sources=resolved_sources,
+        eps=eps,
+        delta=delta,
+    )
+    pit_scores = all_scores.min(dim=0).values
+    if resolved_sources <= 1 or identity_anchor_weight == 0.0:
+        return pit_scores.mean()
+
+    permutations_list = _get_permutations(resolved_sources)
+    identity = tuple(range(resolved_sources))
+    identity_index = permutations_list.index(identity)
+    identity_scores = all_scores[identity_index]
+    other_scores = torch.cat(
+        (all_scores[:identity_index], all_scores[identity_index + 1 :]),
+        dim=0,
+    )
+    best_other_scores = other_scores.min(dim=0).values
+    violation = (
+        identity_scores
+        - best_other_scores
+        + float(identity_anchor_margin)
+    )
+    anchor_scores = float(identity_anchor_temperature) * F.softplus(
+        violation / float(identity_anchor_temperature)
+    )
+    return (
+        pit_scores
+        + float(identity_anchor_weight) * anchor_scores
+    ).mean()
+
+
+def pit_si_snr_huber_phase_loss(
+    outputs: torch.Tensor,
+    targets: torch.Tensor,
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    phase_weight: float = 0.05,
+    num_sources: int = None,
+    eps: float = 1e-8,
+    delta: float = 1.0,
+) -> torch.Tensor:
+    """Shared-permutation waveform and phase-trajectory objective.
+
+    This loss is modulation-label-free. It preserves the Stage-261 waveform
+    objective while adding pressure on CFO/phase evolution, which pointwise
+    Huber and scale-invariant SI-SNR do not isolate.
+    """
+
+    num_sources = _infer_num_sources(outputs, targets, num_sources)
+    preds = _split_iq_sources(outputs, num_sources)
+    tgts = _split_iq_sources(targets, num_sources)
+    perm_scores = []
+    for perm in _get_permutations(num_sources):
+        total = 0.0
+        for target_idx, pred_idx in enumerate(perm):
+            pred = preds[pred_idx]
+            tgt = tgts[target_idx]
+            si_term = -_si_snr_pair_per_item(pred, tgt, eps=eps)
+            huber_term = _huber_pair_per_item(pred, tgt, delta=delta)
+            phase_term = _phase_increment_pair_per_item(pred, tgt, eps=eps)
+            total = (
+                total
+                + float(alpha) * si_term
+                + float(beta) * huber_term
+                + float(phase_weight) * phase_term
+            )
+        perm_scores.append(total / num_sources)
+    return torch.stack(perm_scores, dim=0).min(dim=0).values.mean()
 
 
 def _complex_projection_energy_ratio(
@@ -831,6 +1044,240 @@ def pit_si_snr_huber_xtalk_loss(
 
     all_scores = torch.stack(perm_scores, dim=0)
     return all_scores.min(dim=0).values.mean()
+
+
+def _prepare_cyclic_alphas(
+    cyclic_alphas: Optional[Sequence[float]],
+    device: torch.device,
+    dtype: torch.dtype,
+) -> torch.Tensor:
+    if cyclic_alphas is None:
+        cyclic_alphas = (0.0, 0.05, 0.1, 0.15, 0.2)
+    if isinstance(cyclic_alphas, torch.Tensor):
+        alphas = cyclic_alphas.to(device=device, dtype=dtype)
+    else:
+        alphas = torch.tensor(list(cyclic_alphas), device=device, dtype=dtype)
+    if alphas.numel() == 0:
+        raise ValueError("cyclic_alphas must contain at least one normalized cyclic frequency")
+    return alphas.flatten()
+
+
+def _prepare_cyclic_lags(cyclic_lags: Optional[Sequence[int]]) -> List[int]:
+    if cyclic_lags is None:
+        cyclic_lags = (0, 1, 2, 4, 8)
+    lags = sorted({int(lag) for lag in cyclic_lags if int(lag) >= 0})
+    if not lags:
+        raise ValueError("cyclic_lags must contain at least one non-negative lag")
+    return lags
+
+
+def _cyclic_corr_profile_iq(
+    x_iq: torch.Tensor,
+    y_iq: torch.Tensor,
+    cyclic_alphas: Optional[Sequence[float]] = None,
+    cyclic_lags: Optional[Sequence[int]] = None,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """
+    Normalized cyclic-correlation magnitude profile for two IQ streams.
+
+    The profile samples R_xy^alpha(tau) across a small set of cyclic
+    frequencies and lags:
+
+        mean_n x[n + tau] conj(y[n]) exp(-j 2 pi alpha n)
+
+    Returning log-magnitudes keeps the term robust to global phase and gain,
+    while still preserving modulation/pulse-shape periodic structure.
+    """
+    if x_iq.shape != y_iq.shape or x_iq.ndim != 3 or x_iq.size(1) != 2:
+        raise ValueError(f"Expected matching (B,2,T) IQ tensors, got {tuple(x_iq.shape)} and {tuple(y_iq.shape)}")
+
+    work_dtype = torch.float64 if x_iq.dtype == torch.float64 else torch.float32
+    x_work = x_iq.to(dtype=work_dtype)
+    y_work = y_iq.to(dtype=work_dtype)
+
+    x = _iq_to_complex(x_work)
+    y = _iq_to_complex(y_work)
+    x = x - x.mean(dim=-1, keepdim=True)
+    y = y - y.mean(dim=-1, keepdim=True)
+
+    alphas = _prepare_cyclic_alphas(cyclic_alphas, x_iq.device, work_dtype)
+    lags = _prepare_cyclic_lags(cyclic_lags)
+    time_len = x.size(-1)
+    profiles = []
+
+    for lag in lags:
+        if lag >= time_len:
+            continue
+        if lag == 0:
+            x_lag = x
+            y_base = y
+        else:
+            x_lag = x[:, lag:]
+            y_base = y[:, : time_len - lag]
+
+        prod = x_lag * torch.conj(y_base)
+        n = torch.arange(prod.size(-1), device=x_iq.device, dtype=work_dtype)
+        phase = -2.0 * math.pi * alphas[:, None] * n[None, :]
+        rotator = torch.complex(torch.cos(phase), torch.sin(phase))
+        cyclic_corr = torch.matmul(prod, rotator.transpose(0, 1)) / max(1, prod.size(-1))
+
+        x_power = torch.mean(torch.abs(x_lag).pow(2), dim=-1)
+        y_power = torch.mean(torch.abs(y_base).pow(2), dim=-1)
+        norm = torch.sqrt(x_power * y_power).clamp_min(eps)
+        profiles.append(torch.log1p(torch.abs(cyclic_corr) / norm[:, None]))
+
+    if not profiles:
+        return torch.zeros(
+            x_iq.size(0),
+            0,
+            alphas.numel(),
+            device=x_iq.device,
+            dtype=work_dtype,
+        )
+    return torch.stack(profiles, dim=1)
+
+
+def _cyclic_autocorr_profile_pair_per_item(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    cyclic_alphas: Optional[Sequence[float]] = None,
+    cyclic_lags: Optional[Sequence[int]] = None,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    pred_profile = _cyclic_corr_profile_iq(pred, pred, cyclic_alphas, cyclic_lags, eps=eps)
+    target_profile = _cyclic_corr_profile_iq(target, target, cyclic_alphas, cyclic_lags, eps=eps)
+    if pred_profile.numel() == 0:
+        return torch.zeros(pred.size(0), device=pred.device, dtype=pred.dtype)
+    return (pred_profile - target_profile).pow(2).mean(dim=(-2, -1))
+
+
+def _cyclic_cross_profile_penalty_per_item(
+    outputs: torch.Tensor,
+    num_sources: int,
+    cyclic_alphas: Optional[Sequence[float]] = None,
+    cyclic_lags: Optional[Sequence[int]] = None,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    preds = _split_iq_sources(outputs, num_sources)
+    terms = []
+    for left_idx in range(num_sources):
+        for right_idx in range(left_idx + 1, num_sources):
+            cross_profile = _cyclic_corr_profile_iq(
+                preds[left_idx],
+                preds[right_idx],
+                cyclic_alphas=cyclic_alphas,
+                cyclic_lags=cyclic_lags,
+                eps=eps,
+            )
+            if cross_profile.numel() > 0:
+                terms.append(cross_profile.pow(2).mean(dim=(-2, -1)))
+    if not terms:
+        return torch.zeros(outputs.size(0), device=outputs.device, dtype=outputs.dtype)
+    return torch.stack(terms, dim=0).mean(dim=0)
+
+
+def cyclic_autocorr_profile_loss(
+    outputs: torch.Tensor,
+    targets: torch.Tensor,
+    profile_lambda: float = 1.0,
+    cross_lambda: float = 0.0,
+    cyclic_alphas: Optional[Sequence[float]] = None,
+    cyclic_lags: Optional[Sequence[int]] = None,
+    num_sources: int = None,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """
+    PIT-aware cyclic autocorrelation profile loss for communication signals.
+
+    This is a soft cyclostationary prior: each separated source should preserve
+    the target's normalized cyclic-correlation profile, and optionally different
+    separated streams should have low cross-cyclic correlation.  It is agnostic
+    to PSK/QAM/APSK labels and therefore usable across mixed modulation sets.
+    """
+    num_sources = _infer_num_sources(outputs, targets, num_sources)
+    preds = _split_iq_sources(outputs, num_sources)
+    tgts = _split_iq_sources(targets, num_sources)
+
+    perm_scores = []
+    for perm in _get_permutations(num_sources):
+        total = 0.0
+        for target_idx, pred_idx in enumerate(perm):
+            total = total + _cyclic_autocorr_profile_pair_per_item(
+                preds[pred_idx],
+                tgts[target_idx],
+                cyclic_alphas=cyclic_alphas,
+                cyclic_lags=cyclic_lags,
+                eps=eps,
+            )
+        perm_scores.append(total / num_sources)
+    profile_term = torch.stack(perm_scores, dim=0).min(dim=0).values.mean()
+
+    if float(cross_lambda) == 0.0:
+        return float(profile_lambda) * profile_term
+    cross_term = _cyclic_cross_profile_penalty_per_item(
+        outputs,
+        num_sources,
+        cyclic_alphas=cyclic_alphas,
+        cyclic_lags=cyclic_lags,
+        eps=eps,
+    ).mean()
+    return float(profile_lambda) * profile_term + float(cross_lambda) * cross_term
+
+
+def pit_si_snr_huber_cyclic_profile_loss(
+    outputs: torch.Tensor,
+    targets: torch.Tensor,
+    alpha: float = 1.0,
+    beta: float = 0.5,
+    cyclic_lambda: float = 0.05,
+    cyclic_cross_lambda: float = 0.01,
+    cyclic_alphas: Optional[Sequence[float]] = None,
+    cyclic_lags: Optional[Sequence[int]] = None,
+    num_sources: int = None,
+    eps: float = 1e-8,
+    delta: float = 1.0,
+) -> torch.Tensor:
+    """
+    PIT-SI-SNR + Huber + cyclic autocorrelation profile consistency.
+
+    Unlike constellation/CMA losses, this embeds the cyclostationary structure
+    common to digitally modulated communication signals without assuming a
+    specific constellation family.
+    """
+    num_sources = _infer_num_sources(outputs, targets, num_sources)
+    preds = _split_iq_sources(outputs, num_sources)
+    tgts = _split_iq_sources(targets, num_sources)
+
+    perm_scores = []
+    for perm in _get_permutations(num_sources):
+        total = 0.0
+        for target_idx, pred_idx in enumerate(perm):
+            pred = preds[pred_idx]
+            tgt = tgts[target_idx]
+            si_term = -_si_snr_pair_per_item(pred, tgt, eps=eps)
+            huber_term = _huber_pair_per_item(pred, tgt, delta=delta)
+            cyclic_term = _cyclic_autocorr_profile_pair_per_item(
+                pred,
+                tgt,
+                cyclic_alphas=cyclic_alphas,
+                cyclic_lags=cyclic_lags,
+                eps=eps,
+            )
+            total = total + alpha * si_term + beta * huber_term + cyclic_lambda * cyclic_term
+        perm_scores.append(total / num_sources)
+
+    loss = torch.stack(perm_scores, dim=0).min(dim=0).values.mean()
+    if float(cyclic_cross_lambda) != 0.0:
+        cross_term = _cyclic_cross_profile_penalty_per_item(
+            outputs,
+            num_sources,
+            cyclic_alphas=cyclic_alphas,
+            cyclic_lags=cyclic_lags,
+            eps=eps,
+        ).mean()
+        loss = loss + float(cyclic_cross_lambda) * cross_term
+    return loss
 
 
 def _resize_mixture_to_output(mixture: torch.Tensor, target_length: int) -> torch.Tensor:
@@ -2236,6 +2683,191 @@ def qam_lattice_regularizer_on_output(y_hat, axis_levels=(4, 8, 16), tau=0.03):
     return reg / 2.0
 
 
+def _topology_source_vector(source: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+    """
+    Modulation-shape statistics for one separated IQ source.
+
+    The vector is deliberately low-order: amplitude spread for APSK/QAM,
+    axis occupancy for QAM-like signals, phase-step concentration for PSK-like
+    signals, and kurtosis for high-order constellation density.
+    """
+    if source.ndim != 3 or source.size(1) != 2:
+        raise ValueError(f"Expected source shape (B, 2, L), got {tuple(source.shape)}")
+
+    rms = torch.sqrt(source.pow(2).mean(dim=(1, 2), keepdim=True) + eps)
+    x = source / rms
+    i = x[:, 0, :]
+    q = x[:, 1, :]
+    amp = torch.sqrt(i.pow(2) + q.pow(2) + eps)
+
+    axis_abs_mean = torch.stack([i.abs().mean(dim=-1), q.abs().mean(dim=-1)], dim=-1)
+    axis_abs_std = torch.stack([i.abs().std(dim=-1), q.abs().std(dim=-1)], dim=-1)
+    amp_mean = amp.mean(dim=-1, keepdim=True)
+    amp_std = amp.std(dim=-1, keepdim=True)
+    amp_kurtosis = ((amp - amp.mean(dim=-1, keepdim=True)).pow(4).mean(dim=-1, keepdim=True)) / (
+        amp.var(dim=-1, keepdim=True, unbiased=False).pow(2) + eps
+    )
+
+    if source.size(-1) > 1:
+        z0_i, z0_q = i[:, :-1], q[:, :-1]
+        z1_i, z1_q = i[:, 1:], q[:, 1:]
+        cross_r = z1_i * z0_i + z1_q * z0_q
+        cross_i = z1_q * z0_i - z1_i * z0_q
+        cross_norm = torch.sqrt(cross_r.pow(2) + cross_i.pow(2) + eps)
+        phase_cos = (cross_r / cross_norm).mean(dim=-1, keepdim=True)
+        phase_sin = (cross_i / cross_norm).mean(dim=-1, keepdim=True)
+        phase_concentration = torch.sqrt(phase_cos.pow(2) + phase_sin.pow(2) + eps)
+    else:
+        phase_cos = torch.zeros(source.size(0), 1, device=source.device, dtype=source.dtype)
+        phase_sin = torch.zeros_like(phase_cos)
+        phase_concentration = torch.zeros_like(phase_cos)
+
+    return torch.cat(
+        [
+            axis_abs_mean,
+            axis_abs_std,
+            amp_mean,
+            amp_std,
+            amp_kurtosis,
+            phase_cos,
+            phase_sin,
+            phase_concentration,
+        ],
+        dim=-1,
+    )
+
+
+def topology_profile_from_targets(
+    targets: torch.Tensor,
+    num_sources: int = None,
+    eps: float = 1e-8,
+) -> Dict[str, torch.Tensor]:
+    """Return named topology statistics from target IQ sources for inspection/logging."""
+    num_sources = _infer_num_sources(targets, targets, num_sources)
+    target_sources = to_complex_sources(targets, num_sources)
+    vectors = torch.stack(
+        [_topology_source_vector(target_sources[:, idx], eps=eps) for idx in range(num_sources)],
+        dim=1,
+    )
+    return {
+        "axis_abs_mean": vectors[..., 0:2],
+        "axis_abs_std": vectors[..., 2:4],
+        "amp_mean": vectors[..., 4],
+        "amp_std": vectors[..., 5],
+        "kurtosis": vectors[..., 6],
+        "phase_cos": vectors[..., 7],
+        "phase_sin": vectors[..., 8],
+        "phase_concentration": vectors[..., 9],
+    }
+
+
+def topology_stat_loss_on_output(
+    outputs: torch.Tensor,
+    targets: torch.Tensor,
+    num_sources: int = None,
+    axis_weight: float = 1.0,
+    amp_weight: float = 1.0,
+    phase_weight: float = 0.5,
+    kurtosis_weight: float = 0.25,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """
+    PIT-aware topology-stat auxiliary loss on separated outputs.
+
+    This is intentionally separate from constellation projection. It compares
+    low-order shape statistics between predicted and target sources, allowing
+    QAM/APSK structure to guide training after separation rather than forcing
+    the raw mixture toward a constellation.
+    """
+    num_sources = _infer_num_sources(outputs, targets, num_sources)
+    pred_sources = to_complex_sources(outputs, num_sources)
+    target_sources = to_complex_sources(targets, num_sources)
+
+    pred_vec = torch.stack(
+        [_topology_source_vector(pred_sources[:, idx], eps=eps) for idx in range(num_sources)],
+        dim=1,
+    )
+    target_vec = torch.stack(
+        [_topology_source_vector(target_sources[:, idx], eps=eps) for idx in range(num_sources)],
+        dim=1,
+    )
+
+    weights = torch.tensor(
+        [
+            axis_weight,
+            axis_weight,
+            axis_weight,
+            axis_weight,
+            amp_weight,
+            amp_weight,
+            kurtosis_weight,
+            phase_weight,
+            phase_weight,
+            phase_weight,
+        ],
+        device=outputs.device,
+        dtype=outputs.dtype,
+    )
+
+    perm_losses = []
+    for perm in _get_permutations(num_sources):
+        aligned = target_vec[:, list(perm), :]
+        diff = (pred_vec - aligned).pow(2) * weights.view(1, 1, -1)
+        perm_losses.append(diff.mean(dim=(1, 2)))
+    return torch.stack(perm_losses, dim=0).min(dim=0).values.mean()
+
+
+def separation_mechanism_loss_on_output(
+    outputs: torch.Tensor,
+    mixture: torch.Tensor,
+    num_sources: int = None,
+    mix_weight: float = 1.0,
+    corr_weight: float = 1.0,
+    energy_weight: float = 0.1,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """
+    Target-free separation-mechanism auxiliary loss.
+
+    It encourages additive mixture consistency while discouraging duplicated
+    or strongly correlated source estimates. This is intentionally opposed to
+    topology-stat supervision: it uses only separated outputs plus the mixture.
+    """
+    if outputs.ndim != 3 or outputs.size(1) % 2 != 0:
+        raise ValueError(f"Expected outputs shape (B, 2*K, L), got {tuple(outputs.shape)}")
+    if mixture.ndim != 3 or mixture.size(1) != 2:
+        raise ValueError(f"Expected mixture shape (B, 2, L), got {tuple(mixture.shape)}")
+
+    inferred_sources = outputs.size(1) // 2
+    if num_sources is None:
+        num_sources = inferred_sources
+    elif int(num_sources) != inferred_sources:
+        raise ValueError(f"num_sources={num_sources} but inferred {inferred_sources}")
+
+    sources = to_complex_sources(outputs, num_sources)
+    mixture = _resize_mixture_to_output(mixture, outputs.size(-1)).to(device=outputs.device, dtype=outputs.dtype)
+    mix_term = F.huber_loss(sources.sum(dim=1), mixture, reduction="mean", delta=1.0)
+
+    corr_terms = []
+    for i in range(num_sources):
+        si = sources[:, i] - sources[:, i].mean(dim=-1, keepdim=True)
+        si_power = si.pow(2).sum(dim=1).mean(dim=-1)
+        for j in range(i + 1, num_sources):
+            sj = sources[:, j] - sources[:, j].mean(dim=-1, keepdim=True)
+            sj_power = sj.pow(2).sum(dim=1).mean(dim=-1)
+            real_cov = (si[:, 0] * sj[:, 0] + si[:, 1] * sj[:, 1]).mean(dim=-1)
+            imag_cov = (si[:, 1] * sj[:, 0] - si[:, 0] * sj[:, 1]).mean(dim=-1)
+            corr_terms.append((real_cov.pow(2) + imag_cov.pow(2)) / (si_power * sj_power + eps))
+    corr_term = torch.stack(corr_terms, dim=0).mean() if corr_terms else outputs.new_tensor(0.0)
+
+    source_energy = sources.pow(2).sum(dim=2).mean(dim=-1)
+    energy_share = source_energy / (source_energy.sum(dim=1, keepdim=True) + eps)
+    balanced_share = outputs.new_full((1,), 1.0 / float(num_sources))
+    energy_term = (energy_share - balanced_share).pow(2).mean()
+
+    return mix_weight * mix_term + corr_weight * corr_term + energy_weight * energy_term
+
+
 def cross_covariance_penalty(pred_c: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
     """
     Compute statistical independence penalty (cross-covariance) between sources.
@@ -2287,4 +2919,30 @@ def pit_si_snr_huber_ind_loss(
     ind_penalty = cross_covariance_penalty(pred_c, eps).mean()
     
     total_loss = base_loss + alpha_ind * ind_penalty
+    return total_loss
+
+
+def pit_si_snr_huber_mc_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    mixture: torch.Tensor,
+    num_sources: int,
+    alpha: float = 0.5,
+    beta: float = 1.0,
+    mc_lambda: float = 0.05,
+    eps: float = 1e-8
+) -> torch.Tensor:
+    """
+    PIT SI-SNR + Huber + Mixture Consistency Penalty.
+    """
+    # Base PIT loss
+    base_loss = pit_si_snr_huber_loss(pred, target, alpha=alpha, beta=beta, num_sources=num_sources, eps=eps)
+    
+    # Mixture Consistency
+    pred_c = to_complex_sources(pred, num_sources)  # [B, num_sources, 2, L]
+    mixture_pred = pred_c.sum(dim=1)  # [B, 2, L]
+    
+    mc_loss = F.huber_loss(mixture_pred, mixture, reduction='mean', delta=1.0)
+    
+    total_loss = base_loss + mc_lambda * mc_loss
     return total_loss

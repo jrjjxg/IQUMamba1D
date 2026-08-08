@@ -1,0 +1,27 @@
+# IQUResUNet1D_PulseTimingPrior (Stage 113)
+# Stage 56 ResUNet1D_NoASC backbone with a Pulse-shaping prior + Multi-hypothesis Timing prior adapter.
+
+model_config:
+  model_type: resunet1d_pulse_timing_prior
+
+  input_channels: 2
+  num_classes: 4
+  n_stages: 5
+  features_per_stage: [32, 64, 128, 256, 320]
+  kernel_sizes: [3, 3, 3, 3, 3]
+  strides: [1, 2, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 2, 2]
+  deep_supervision: false
+  use_complex_mask: false
+
+  # Pulse Prior Adapter Configuration
+  pulse_prior_rolloffs: [0.2, 0.35, 0.5]
+  pulse_prior_rrc_kernel_size: 31
+  
+  # Timing Prior Adapter Configuration
+  timing_prior_num_hypotheses: 4
+  
+  # General Adapter Config
+  prior_gate_hidden: 16
+  prior_scale_init: 0.01

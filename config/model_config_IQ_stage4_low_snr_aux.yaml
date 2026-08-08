@@ -1,0 +1,30 @@
+# IQUMamba1D Stage 203 - low-SNR enhancement with clean/noise auxiliary loss.
+model_config:
+
+  model_type: iqumamba_low_snr_se
+  input_channels: 2
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  num_classes: 4
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Same lightweight near-identity enhancer as stage199, but it returns aux
+  # tensors so PIT-SI-SNR+Huber+LowSNRAux can supervise clean mixture/noise.
+  low_snr_se_hidden_channels: 24
+  low_snr_se_kernel_size: 9
+  low_snr_se_scale_init: 0.01
+  low_snr_se_zero_init: true
+
+  # Avoid forcing noisy-mixture projection during training; keep it available
+  # for evaluation consistency once the separator has produced sources.
+  low_snr_se_use_projection: true
+  low_snr_se_project_during_train: false
+  low_snr_se_project_during_eval: true
+  low_snr_se_source_weight: 0.25
+  low_snr_se_noise_weight: 1.0
+  low_snr_se_eps: 1.0e-8
+  low_snr_se_return_aux: true
