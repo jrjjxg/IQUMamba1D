@@ -1,0 +1,39 @@
+# Stage385: XL width scaling of Stage381.
+# Stage381 is Stage377 with only the zero-based encoder stage 1 UniRepLK
+# adapter removed; Stage385 preserves that [0, 2] placement exactly.
+model_config:
+  model_type: resunet1d_complexstate_unireplk_no_stage1_xl
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+
+  # Uniform Stage377/381 XL width scaling. Channel-dependent encoder,
+  # decoder, BiMamba d_model, UniRepLK adapters, and mask heads derive their
+  # widths from this list.
+  features_per_stage: [96, 192, 384, 768]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Preserve Stage381's complex-state BiMamba placement and state-space order.
+  bimamba_apply_stages: [1, 3]
+  bimamba_residual_scale_init: 1.0
+  complex_state_d_state: 8
+  complex_state_d_conv: 4
+  complex_state_expand: 2
+  complex_state_scan_checkpoint: true
+  complex_state_scan_backend: auto
+  # Width-like fusion bottleneck scales from 64 to 192 with the XL trunk.
+  complex_state_fusion_hidden: 192
+
+  # Strictly inherit Stage381: remove only zero-based encoder stage 1.
+  rf_apply_stages: [0, 2]
+  rf_residual_scale_init: 0.05
+  rf_large_kernel: 17
+  rf_ffn_factor: 4
+  rf_layer_scale: 1.0e-6
+
+  latent_mask_mode: real
+  latent_mask_eps: 1.0e-6

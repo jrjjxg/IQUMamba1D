@@ -1,0 +1,14 @@
+# Stage383: parameter-matched scaling of the Stage378 KU-TII-style WaveNet.
+# Only the residual width is reduced. The 30-layer depth, three complete
+# 10-layer dilation cycles, learnable dilation, and source-slot head remain
+# identical to Stage378.
+model_config:
+  model_type: kutii_dual_source_wavenet
+  comparison_variant: param_match
+  input_channels: 2
+  num_classes: 4
+
+  residual_channels: 108
+  residual_layers: 30
+  dilation_cycle_length: 10
+  max_dilation: 1024

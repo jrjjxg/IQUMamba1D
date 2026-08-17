@@ -1,0 +1,39 @@
+Use case: scientific-educational
+Asset type: publication-ready neural-network architecture figure for an AI/RF signal-separation paper
+
+Primary request:
+Redraw Image 1 as a clean landscape architecture diagram. Preserve the exact Stage 377 computation, but replace the four visually repeated Latent Mask Head pipelines with four compact scale ports plus one generic expanded mechanism. Enclose the complete Encoder in one large left container and the complete Decoder in one large right container.
+
+Required title (verbatim):
+Stage 377: No-ASC Complex-State BiMamba + UniRepLK + Multi-Scale Real Simplex Latent Mask
+
+Required architecture:
+- Input: I/Q mixture y, tensor [B, 2, L].
+- Four encoder scales: F0 [B,32,L], F1 [B,64,L/2], F2 [B,128,L/4], F3 [B,256,L/8].
+- Independent Complex-State BiMamba only at stages 1 and 3. Show forward and backward complex-state branches with adaptive direction-gated fusion: g*F_fwd + (1-g)*F_bwd.
+- UniRepLK is a parallel residual delta adapter at stages 0, 1, and 2. It is not a serial encoder block.
+- Central orange module title: Multi-Scale Latent Mask and Slot Packing.
+- Show four compact aligned inputs: F0 [B,32,L], F1 [B,64,L/2], F2 [B,128,L/4], and F3 [B,256,L/8].
+- Draw four compact scale ports H0-H3. Each is an independent 1x1 Conv with shape Ci -> 2Ci. The four heads have the same operator form but different channel widths and independent parameters.
+- Do not expand the full pipeline four times. In the main architecture, show only compact Hi ports and their Zi outputs. In one bottom inset, expand the generic mechanism once: Fi [B,Ci,Li] -> Hi: 1x1 Conv Ci->2Ci -> reshape [B,2,Ci,Li] -> softmax over source slots -> Mi -> element-wise masking -> slot-to-batch view.
+- Draw source-wise masking once as the generic operation Zi,k = Mi,k element-wise-multiply Fi, independently applied for i = 0,1,2,3 and k = 1,2.
+- Show the simplex constraint exactly: M1^(i)(c,t) + M2^(i)(c,t) = 1.
+- State exactly: H0-H3 have the same structure but independent parameters; only the parameter-free slot-to-batch reshape utility is shared conceptually across scales.
+- Draw slot-to-batch flattening once as a violet parameter-free utility: [B,2,Ci,Li] -> [2B,Ci,Li]. Label it reshape/view only, no parameters.
+- Show compact routed outputs Z0, Z1, Z2, Z3 feeding matching decoder levels.
+- Right container title: 3-stage Shared Plain-Skip Decoder.
+- Decoder flow: masked bottleneck F3 -> upsample x2 + concat masked F2 -> residual conv -> upsample x2 + concat masked F1 -> residual conv -> upsample x2 + concat masked F0 -> residual conv -> output projection.
+- State exactly: One batched shared-decoder invocation, effective batch = 2B, shared weights.
+- No ASC and no skip processors.
+- Decoder output: [2B,2,L] -> reshape [B,2,2,L] -> [B,4,L].
+- Two output boxes: Separated source 1 [I1,Q1] and Separated source 2 [I2,Q2].
+- Output order: [S1_I, S1_Q, S2_I, S2_Q].
+
+Composition:
+Wide landscape, three clear zones from left to right: boxed Encoder, compact Mask & Slot Routing, boxed Decoder. Place one generic mask-head detail inset below the main architecture. Use short non-crossing arrows and align the four scale connections horizontally. Do not repeat four full mask pipelines. Preserve large margins and make all text readable at paper-column zoom.
+
+Style:
+Clean journal-quality vector-like scientific infographic rendered as a PNG. White background, pale blue encoder container, pale orange routing container, pale green decoder container. Thin dark-gray arrows, restrained color coding, consistent typography, 8px-or-less corner radius, no gradients, no decoration.
+
+Constraints:
+All equations, tensor shapes, stage indices, labels, and output order must be verbatim and legible. Do not invent layers. Do not duplicate four complete mask-head pipelines. Do not imply shared mask-head weights: Stage 377 uses four independent Conv1d heads. Do not imply four decoder invocations. No watermark, no logo, no citation, no 3D rendering, no shadows, no decorative icons, no unreadable microtext, and no crossing skip lines.

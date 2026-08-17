@@ -1,0 +1,16 @@
+# Stage384: Stage4-FLOPs-matched KU-TII trunk with Stage381's three modules.
+# The WaveNet trunk is width-scaled to 52 channels for the Stage4 4096/32
+# forward budget, then receives one bottleneck independent complex-state
+# BiMamba, one parallel UniRepLK residual adapter, and a real simplex mask.
+model_config:
+  model_type: kutii_dual_source_wavenet
+  comparison_variant: flops_match_stage381_enhanced
+  input_channels: 2
+  num_classes: 4
+
+  residual_channels: 52
+  residual_layers: 30
+  dilation_cycle_length: 10
+  max_dilation: 1024
+  enhanced_stage381: true
+  target_forward_flops: 301.86e9

@@ -8,18 +8,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
-
-import h5py
-import numpy as np
-import torch
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from util.metrics import reference_ber_iq_from_bits
+from util.ber_receiver import evaluate_private_file
 
 
 DATASET_MODULATIONS = {
@@ -37,67 +32,16 @@ DATASET_MODULATIONS = {
 }
 
 
-def _vector(handle: h5py.File, key: str) -> np.ndarray:
-    return np.asarray(handle[key]).reshape(-1)
-
-
-def _bit_path(dataset_dir: Path, target_path: Path, source_idx: int) -> Path:
-    name = target_path.name.replace("Dataset_target_", "BitData_")
-    name = re.sub(r"\.mat$", f"_Source{source_idx + 1}.mat", name)
-    path = dataset_dir / "bits" / name
-    if not path.exists():
-        raise FileNotFoundError(f"Missing bit labels: {path}")
-    return path
-
-
 def audit_target_file(target_path: Path, dataset_name: str) -> dict:
-    dataset_dir = target_path.parent.parent
-    modulations = DATASET_MODULATIONS[dataset_name]
-    with h5py.File(target_path, "r") as handle:
-        raw = np.asarray(handle["ideal_frames"][:])
-        sps_by_source = _vector(handle, "Fs_sps_by_source").astype(int)
-        cfo_by_source = _vector(handle, "cfo_hz").astype(float)
-        sample_rate_hz = float(_vector(handle, "sample_rate_mhz")[0]) * 1e6
-        rrc_alpha = float(_vector(handle, "rrc_alpha")[0])
-        rrc_span = int(_vector(handle, "rrc_span")[0])
-
-    results = []
-    for source_idx, modulation in enumerate(modulations):
-        stream = (
-            raw[2 * source_idx] + 1j * raw[2 * source_idx + 1]
-        ).T.reshape(-1)
-        with h5py.File(_bit_path(dataset_dir, target_path, source_idx), "r") as handle:
-            bits = np.asarray(handle["file_bits"]).reshape(-1).astype(np.uint8)
-        iq = torch.from_numpy(
-            np.stack([stream.real, stream.imag], axis=0)[None].astype(np.float32)
-        )
-        bit_tensor = torch.from_numpy(bits[None])
-        value = reference_ber_iq_from_bits(
-            iq,
-            iq,
-            bit_tensor,
-            modulation=modulation,
-            sps=int(sps_by_source[source_idx]),
-            sample_rate_hz=sample_rate_hz,
-            cfo_hz=float(cfo_by_source[source_idx]),
-            rrc_alpha=rrc_alpha,
-            rrc_span=rrc_span,
-        )
-        results.append({
-            "source": source_idx + 1,
-            "modulation": modulation,
-            "sps": int(sps_by_source[source_idx]),
-            "cfo_hz": float(cfo_by_source[source_idx]),
-            "target_vs_target_ber": float(value),
-        })
-    return {
-        "dataset": dataset_name,
-        "target_file": str(target_path),
-        "receiver": "reference_assisted",
-        "sample_rate_hz": sample_rate_hz,
-        "sources": results,
-        "passed": all(item["target_vs_target_ber"] <= 1e-4 for item in results),
-    }
+    result = evaluate_private_file(target_path, dataset_name)
+    result["passed"] = all(
+        float(item["ber"]) <= 1e-4
+        for item in result["sources"]
+        if item["compared_bits"] > 0
+    )
+    for item in result["sources"]:
+        item["target_vs_target_ber"] = item["ber"]
+    return result
 
 
 def main() -> int:

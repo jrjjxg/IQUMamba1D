@@ -9,10 +9,13 @@ from pathlib import Path
 import shutil
 from datetime import datetime
 import argparse
+import atexit
 import inspect
 import csv
 import copy
 from torch.utils.data import DataLoader, Subset
+from torch.utils.data.distributed import DistributedSampler
+from torch.nn.parallel import DistributedDataParallel
 
 # Project root (repo-relative, cross-platform)
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -31,6 +34,7 @@ from util.training import train_model
 from util.utils import Create_Mamba_model, create_new_results_folder
 from util.config import MambaConfig
 from util.blind_cross_snr import apply_blind_cross_snr_profile
+from util.distributed import DistributedEvalSampler
 from util.stage_registry import supported_stage_ids
 from util.runtime import (
     collect_accelerator_diagnostics,
@@ -81,6 +85,153 @@ from util.loss import (
     pit_si_snr_huber_ind_loss,
     pit_si_snr_huber_cyclic_profile_loss,
 )
+
+
+class _CheckpointCompatibleParallelMixin:
+    """Keep parallel-wrapper checkpoint keys identical to single-GPU runs."""
+
+    def state_dict(self, *args, **kwargs):
+        return self.module.state_dict(*args, **kwargs)
+
+    def load_state_dict(self, state_dict, *args, **kwargs):
+        if any(key.startswith('module.') for key in state_dict):
+            state_dict = {
+                key[7:] if key.startswith('module.') else key: value
+                for key, value in state_dict.items()
+            }
+        return self.module.load_state_dict(state_dict, *args, **kwargs)
+
+
+class CheckpointCompatibleDataParallel(_CheckpointCompatibleParallelMixin, nn.DataParallel):
+    pass
+
+
+class CheckpointCompatibleDistributedDataParallel(
+    _CheckpointCompatibleParallelMixin, DistributedDataParallel
+):
+    pass
+
+
+def _ddp_enabled(args) -> bool:
+    return bool(getattr(args, "ddp", False))
+
+
+def _ddp_rank() -> int:
+    return int(os.environ.get("RANK", "0"))
+
+
+def _ddp_world_size() -> int:
+    return int(os.environ.get("WORLD_SIZE", "1"))
+
+
+def _ddp_is_main(args) -> bool:
+    return not _ddp_enabled(args) or _ddp_rank() == 0
+
+
+def _training_device(args):
+    if _ddp_enabled(args):
+        local_rank = int(os.environ["LOCAL_RANK"])
+        return torch.device("cuda", local_rank)
+    return resolve_training_device(torch, require_cuda=args.require_cuda)
+
+
+def _initialize_distributed(args) -> None:
+    if not _ddp_enabled(args):
+        return
+    if not torch.distributed.is_available():
+        raise RuntimeError("--ddp requires torch.distributed support")
+    if torch.distributed.is_initialized():
+        return
+    required = ("RANK", "WORLD_SIZE", "LOCAL_RANK", "MASTER_ADDR", "MASTER_PORT")
+    missing = [name for name in required if name not in os.environ]
+    if missing:
+        raise RuntimeError(
+            "--ddp must be launched with torchrun; missing environment variables: "
+            + ", ".join(missing)
+        )
+    if not torch.cuda.is_available():
+        raise RuntimeError("--ddp currently requires CUDA")
+    if not torch.distributed.is_nccl_available():
+        raise RuntimeError("--ddp requires a PyTorch build with NCCL support")
+    local_rank = int(os.environ["LOCAL_RANK"])
+    world_size = _ddp_world_size()
+    visible_gpus = torch.cuda.device_count()
+    if local_rank >= visible_gpus:
+        raise RuntimeError(
+            f"DDP local rank {local_rank} is not available; visible GPUs={visible_gpus}"
+        )
+    if world_size != visible_gpus:
+        raise RuntimeError(
+            f"DDP world size ({world_size}) must match visible GPU count ({visible_gpus}). "
+            "Set CUDA_VISIBLE_DEVICES to the intended GPU list."
+        )
+    torch.cuda.set_device(local_rank)
+    torch.distributed.init_process_group(backend="nccl", init_method="env://")
+
+
+def _cleanup_distributed() -> None:
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
+
+
+def _make_distributed_train_loader(loader, seed: int | None):
+    """Rebuild a normal loader with a per-rank sampler for the DDP path."""
+
+    rank = _ddp_rank()
+    world_size = _ddp_world_size()
+    sampler = DistributedSampler(
+        loader.dataset,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=True,
+        drop_last=loader.drop_last,
+        seed=0 if seed is None else int(seed),
+    )
+    kwargs = {
+        "batch_size": loader.batch_size,
+        "sampler": sampler,
+        "num_workers": loader.num_workers,
+        "pin_memory": loader.pin_memory,
+        "drop_last": loader.drop_last,
+        "collate_fn": loader.collate_fn,
+        "worker_init_fn": loader.worker_init_fn,
+        "generator": torch.Generator().manual_seed(
+            (0 if seed is None else int(seed)) + rank
+        ),
+    }
+    if loader.num_workers > 0:
+        kwargs["persistent_workers"] = loader.persistent_workers
+        if loader.prefetch_factor is not None:
+            kwargs["prefetch_factor"] = loader.prefetch_factor
+    return DataLoader(loader.dataset, **kwargs)
+
+
+def _make_distributed_eval_loader(loader, seed: int | None):
+    """Rebuild an evaluation loader so each sample is processed by one rank."""
+
+    rank = _ddp_rank()
+    sampler = DistributedEvalSampler(
+        loader.dataset,
+        num_replicas=_ddp_world_size(),
+        rank=rank,
+    )
+    kwargs = {
+        "batch_size": loader.batch_size,
+        "sampler": sampler,
+        "num_workers": loader.num_workers,
+        "pin_memory": loader.pin_memory,
+        "drop_last": False,
+        "collate_fn": loader.collate_fn,
+        "worker_init_fn": loader.worker_init_fn,
+        "generator": torch.Generator().manual_seed(
+            (0 if seed is None else int(seed)) + rank
+        ),
+    }
+    if loader.num_workers > 0:
+        kwargs["persistent_workers"] = loader.persistent_workers
+        if loader.prefetch_factor is not None:
+            kwargs["prefetch_factor"] = loader.prefetch_factor
+    return DataLoader(loader.dataset, **kwargs)
 
 LOSS_FUNCTION_CHOICES = [
     'MSE', 'L1', 'Huber',
@@ -1240,6 +1391,25 @@ def get_model_config_path(stage):
         376: CONFIG_ROOT / "model_config_stage376_stage56_latent_mask_real.yaml",
         377: CONFIG_ROOT / "model_config_stage377_stage56_complexstate_unireplk_latent_mask_real.yaml",
         378: CONFIG_ROOT / "model_config_stage378_kutii_dual_source_wavenet.yaml",
+        379: CONFIG_ROOT / "model_config_stage379_stage377_latent_mask_sigmoid.yaml",
+        380: CONFIG_ROOT / "model_config_stage380_stage377_light_separator.yaml",
+        381: CONFIG_ROOT / "model_config_stage381_stage377_no_stage1_unireplk.yaml",
+        382: CONFIG_ROOT / "model_config_stage382_stage377_unireplk_separator.yaml",
+        383: CONFIG_ROOT / "model_config_stage383_kutii_param_match.yaml",
+        384: CONFIG_ROOT / "model_config_stage384_kutii_flops_match.yaml",
+        385: CONFIG_ROOT / "model_config_stage385_stage381_xl.yaml",
+        386: CONFIG_ROOT / "model_config_stage386_stage381_unireplk_backbone.yaml",
+        387: CONFIG_ROOT / "model_config_stage387_stage381_integrated_unireplk.yaml",
+        388: CONFIG_ROOT / "model_config_stage388_adaptive_complex_unireplk.yaml",
+        389: CONFIG_ROOT / "model_config_stage389_adaptive_real_unireplk.yaml",
+        390: CONFIG_ROOT / "model_config_stage390_fixed_complex_unireplk.yaml",
+        391: CONFIG_ROOT / "model_config_stage391_stage310_no_stage1_unireplk.yaml",
+        392: CONFIG_ROOT / "model_config_stage392_stage391_parallel_delta.yaml",
+        393: CONFIG_ROOT / "model_config_stage393_stage391_adaptive_rf.yaml",
+        394: CONFIG_ROOT / "model_config_stage394_stage392_adaptive_rf.yaml",
+        395: CONFIG_ROOT / "model_config_stage395_delta_post.yaml",
+        396: CONFIG_ROOT / "model_config_stage396_full_pre.yaml",
+        397: CONFIG_ROOT / "model_config_stage397_stage394_complex_bimamba.yaml",
         366: CONFIG_ROOT / "model_config_stage366_stage4_cross_snr_sync_conditioned.yaml",
         367: CONFIG_ROOT / "model_config_stage367_stage4_cross_snr_ema.yaml",
         368: CONFIG_ROOT / "model_config_stage368_stage4_sync_conditioned.yaml",
@@ -2346,16 +2516,42 @@ def calculate_model_complexity(model, batch_size, input_channels, input_size, lo
     # calflops pulls in timm/torchvision in some environments (e.g. Kaggle),
     # and may crash due to torch/torchvision binary mismatches. Treat FLOPs as optional.
     params = sum(p.numel() for p in model.parameters())
+    original_training_mode = model.training
+    original_buffers = {
+        name: buffer.detach().clone()
+        for name, buffer in model.named_buffers()
+    }
+    try:
+        model_device = next(model.parameters()).device
+    except StopIteration:
+        model_device = torch.device("cpu")
+    cuda_devices = []
+    if model_device.type == "cuda":
+        cuda_devices = [
+            torch.cuda.current_device()
+            if model_device.index is None
+            else model_device.index
+        ]
     try:
         from calflops import calculate_flops  # local import (optional dependency)
         input_tuple = (batch_size, input_channels, input_size)
-        flops, macs, _ = calculate_flops(model, input_tuple, print_detailed=False)
+        with torch.random.fork_rng(devices=cuda_devices):
+            flops, macs, _ = calculate_flops(
+                model, input_tuple, print_detailed=False
+            )
         logger.info(f"InputSize: {input_size}, FLOPs: {flops}, MACs: {macs}, Params: {params}")
         return flops, macs, params
     except Exception as e:
         logger.warning(f"Skipping FLOPs/MACs calculation (calflops/torchvision issue): {e}")
         logger.info(f"InputSize: {input_size}, Params: {params}")
         return None, None, params
+    finally:
+        current_buffers = dict(model.named_buffers())
+        with torch.no_grad():
+            for name, original_value in original_buffers.items():
+                if name in current_buffers:
+                    current_buffers[name].copy_(original_value)
+        model.train(original_training_mode)
 
 
 def setup_training_components(args, model, logger):
@@ -2933,7 +3129,7 @@ def setup_training_components(args, model, logger):
     # IQUMamba/BiMamba: usually stable at 1e-3
     # TFGridNet/SPMamba/Conformer-GridNet: generally prefers 3e-4
     # TIGER variants: often more sensitive, use 1e-4 by default
-    if args.stage in {6, 10, 11, 13, 14, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 30, 31, 238, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 378}:
+    if args.stage in {6, 10, 11, 13, 14, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 30, 31, 238, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 378, 383, 384}:
         default_lr = 3e-4
     elif args.stage in {7, 8, 9, 28}:
         default_lr = 1e-4
@@ -3215,7 +3411,7 @@ def test_data_loading(args, logger):
     apply_loss_args_from_model_config(args, cfg)
     apply_blind_cross_snr_profile(args)
     train_aug_config = resolve_train_aug_config(cfg, args=args, num_epochs=args.num_epochs)
-    device = resolve_training_device(torch, require_cuda=args.require_cuda)
+    device = _training_device(args)
     logger.info(f"Using device: {device}")
     log_accelerator_diagnostics(logger, collect_accelerator_diagnostics(torch))
     pin_memory = should_pin_memory(device, args.no_pin_memory)
@@ -3272,9 +3468,12 @@ def test_data_loading(args, logger):
 
 def run_single_experiment(args, seed=None):
     """Run single experiment"""
+    is_main_process = _ddp_is_main(args)
+
     # Set random seeds
     if seed is not None:
-        set_random_seeds(seed)
+        process_seed = int(seed) + (_ddp_rank() if _ddp_enabled(args) else 0)
+        set_random_seeds(process_seed)
         args.seed = seed
     
     # If in data test mode, create simple temporary logger
@@ -3299,28 +3498,44 @@ def run_single_experiment(args, seed=None):
     compact_mode = bool(getattr(args, "compact_results", False))
     results_folder = None
     if not compact_mode:
-        results_folder = create_new_results_folder()
-        if seed is not None:
-            results_folder = f"{results_folder}_seed_{seed}"
+        if is_main_process:
+            results_folder = create_new_results_folder()
+            if seed is not None:
+                results_folder = f"{results_folder}_seed_{seed}"
+
+        if _ddp_enabled(args):
+            shared_folder = [results_folder]
+            torch.distributed.broadcast_object_list(shared_folder, src=0)
+            results_folder = shared_folder[0]
 
         # Create necessary folders
-        folders = ['weights', 'logs', 'saved_plots', 'config']
-        for folder in folders:
-            (RESULTS_ROOT / results_folder / folder).mkdir(parents=True, exist_ok=True)
+        if is_main_process:
+            folders = ['weights', 'logs', 'saved_plots', 'config']
+            for folder in folders:
+                (RESULTS_ROOT / results_folder / folder).mkdir(parents=True, exist_ok=True)
 
-        logger = create_logger(str(RESULTS_ROOT / results_folder / "logs" / "output.log"))
+        logger = create_logger(
+            str(RESULTS_ROOT / results_folder / "logs" / "output.log"),
+            file_handle=is_main_process,
+        )
     else:
-        logger_name = f"ablation_compact_{args.loss_fun}_{seed}_{random.randint(0, 10**6)}"
+        logger_name = (
+            f"ablation_compact_{args.loss_fun}_{seed}_{_ddp_rank()}_"
+            f"{random.randint(0, 10**6)}"
+        )
         logger = create_logger(logger_name, file_handle=False)
+
+    if not is_main_process:
+        logger.setLevel("WARNING")
 
     logger.info(f"Starting experiment - Seed: {seed if seed is not None else 'None'}")
     
     # Save experiment configuration
-    if not compact_mode:
+    if not compact_mode and is_main_process:
         save_experiment_config(args, results_folder)
     
     # Setup device
-    device = resolve_training_device(torch, require_cuda=args.require_cuda)
+    device = _training_device(args)
     logger.info(f"Using device: {device}")
     log_accelerator_diagnostics(logger, collect_accelerator_diagnostics(torch))
     pin_memory = should_pin_memory(device, args.no_pin_memory)
@@ -3331,7 +3546,7 @@ def run_single_experiment(args, seed=None):
     
     # Get config file path and copy
     config_path = get_model_config_path(args.stage)
-    if not compact_mode:
+    if not compact_mode and is_main_process:
         shutil.copy2(config_path, str(RESULTS_ROOT / results_folder / "config"))
     
     # Create config object
@@ -3380,7 +3595,47 @@ def run_single_experiment(args, seed=None):
     
     # Calculate model complexity
     batch_size = args.batch_size
-    flops, macs, params = calculate_model_complexity(model, batch_size, input_channels, input_size, logger)
+    if is_main_process:
+        flops, macs, params = calculate_model_complexity(
+            model, batch_size, input_channels, input_size, logger
+        )
+    else:
+        flops, macs = None, None
+        params = sum(parameter.numel() for parameter in model.parameters())
+
+    if args.ddp:
+        local_rank = int(os.environ["LOCAL_RANK"])
+        model = CheckpointCompatibleDistributedDataParallel(
+            model,
+            device_ids=[local_rank],
+            output_device=local_rank,
+            find_unused_parameters=args.ddp_find_unused_parameters,
+        )
+        logger.info(
+            f'Using DDP rank={_ddp_rank()}/{_ddp_world_size()}, local_rank={local_rank}; '
+            f'per-GPU batch_size={batch_size}, '
+            f'global batch_size={batch_size * _ddp_world_size() * args.accumulation_steps}'
+        )
+    elif args.data_parallel:
+        if device.type != 'cuda':
+            raise RuntimeError('--data_parallel requires CUDA')
+        gpu_count = torch.cuda.device_count()
+        if gpu_count < 2:
+            raise RuntimeError(
+                f'--data_parallel requires at least 2 visible GPUs, found {gpu_count}. '
+                'Check CUDA_VISIBLE_DEVICES.'
+            )
+        if batch_size < gpu_count:
+            raise ValueError(
+                f'--data_parallel needs batch_size >= visible GPU count; '
+                f'got batch_size={batch_size}, GPUs={gpu_count}'
+            )
+        device_ids = list(range(gpu_count))
+        model = CheckpointCompatibleDataParallel(model, device_ids=device_ids)
+        logger.info(
+            f'Using DataParallel on {gpu_count} GPUs: {device_ids}; '
+            f'global batch_size={batch_size}'
+        )
     
     # Setup training components
     criterion, optimizer, scheduler = setup_training_components(args, model, logger)
@@ -3398,6 +3653,18 @@ def run_single_experiment(args, seed=None):
         )
         if args.mode == 'train':
             train_loader = subsample_train_loader(train_loader, args.train_subset_ratio, seed, logger)
+            if args.ddp:
+                train_loader = _make_distributed_train_loader(train_loader, seed)
+                val_loader = _make_distributed_eval_loader(val_loader, seed)
+                logger.info(
+                    f'DDP training shard: rank={_ddp_rank()}, '
+                    f'batches_per_rank={len(train_loader)}'
+                )
+                logger.info(
+                    f'DDP validation shard: rank={_ddp_rank()}, '
+                    f'samples_per_rank={len(val_loader.sampler)}, '
+                    f'batches_per_rank={len(val_loader)}'
+                )
     
     def _stage_arg(name, default):
         value = getattr(args, name, None)
@@ -3420,7 +3687,8 @@ def run_single_experiment(args, seed=None):
             num_sources=NUM_SOURCES,
             accumulation_steps=args.accumulation_steps,
             use_mixed_precision=not args.no_mixed_precision,
-            save_artifacts=not compact_mode,
+            use_tqdm=is_main_process,
+            save_artifacts=not compact_mode and is_main_process,
             save_checkpoint_every=args.save_checkpoint_every,
             report_ber=args.report_ber,
             ber_offset_search=args.ber_offset_search,
@@ -3593,7 +3861,7 @@ def run_single_experiment(args, seed=None):
             model, snr_loaders, criterion, device, logger, results_folder,
             num_plots=0 if compact_mode else 1, num_points=num_points, input_size=input_size,
             data_choice=args.data_choice, signal_names=SIGNAL_NAMES,
-            save_artifacts=not compact_mode,
+            save_artifacts=not compact_mode and is_main_process,
             report_ber=args.report_ber,
             ber_offset_search=args.ber_offset_search,
             ber_mode=args.ber_mode,
@@ -3609,7 +3877,7 @@ def run_single_experiment(args, seed=None):
         )
         
         # Clean up checkpoint file only when using the default checkpoint path.
-        if args.weights_path is None:
+        if args.weights_path is None and is_main_process:
             checkpoint_path = CHECKPOINT_ROOT / "best_model_weights.pth"
             if checkpoint_path.exists():
                 checkpoint_path.unlink()
@@ -3618,6 +3886,8 @@ def run_single_experiment(args, seed=None):
         logger.info("Experiment completed (compact mode, artifacts suppressed)")
     else:
         logger.info(f"Experiment completed - Results saved in: {results_folder}")
+    if _ddp_enabled(args):
+        torch.distributed.barrier()
     if compact_mode and args.mode == 'train' and training_history is not None:
         summary = {
             "results_folder": None,
@@ -4182,6 +4452,25 @@ def parse_arguments():
                               '365=IQUBiMamba_IndependentComplexStateUniRepLK(Stage364 + Stage310) | '
                               '376=Stage56_NoASC_RealLatentMask(Stage56 + Stage371-style per-scale real latent mask) | '
                               '377=Stage56_NoASC_ComplexStateUniRepLK_RealLatentMask(Stage56 plain decoder + complex-state BiMamba + UniRepLK + simplex mask) | '
+                              '379=Stage377_IndependentSigmoidMask(Stage377 with independent sigmoid masks; no source-sum constraint) | '
+                              '380=Stage377_LightTemporalMaskSeparator(Stage377 + per-scale DWConv dilations 1/2 mask estimator) | '
+                              '381=Stage377_NoStage1UniRepLK(Stage377 with encoder-stage1 UniRepLK removed) | '
+                              '382=Stage377_UniRepLKSeparator(Stage377 with encoder UniRepLK relocated into mask separation) | '
+                              '383=KUTIIDualSourceWaveNet_ParamMatch(Stage378 width=108, 30 blocks) | '
+                              '384=KUTIIDualSourceWaveNet_Stage4FLOPsMatch+Stage381Modules(width=52, 30 blocks) | '
+                              '385=Stage381_XL(widths 96/192/384/768; UniRepLK only at stages 0/2) | '
+                              '386=Stage381_UniRepLKBackbone(replaceable encoder/decoder residual cores with UniRepLK) | '
+                              '387=Stage381_IntegratedUniRepLK(one integrated UniRepLK block per encoder/decoder level) | '
+                              '388=Stage388_AdaptiveComplexUniRepLK(feature-routed RF experts + phase-equivariant complex blocks) | '
+                              '389=Stage388_RoutingOnlyAblation(adaptive real RF routing without complex constraint) | '
+                              '390=Stage388_ComplexOnlyAblation(fixed complex UniRepLK without RF routing) | '
+                              '391=Stage310_NoStage1UniRepLK(Stage310 connection; UniRepLK stages 0/2) | '
+                              '392=Stage391_ParallelDelta(Stage381 connection semantics) | '
+                              '393=Stage391_AdaptiveRF(Stage389 routed UniRepLK; Stage310 connection) | '
+                              '394=Stage392_AdaptiveRF(Stage389 routed UniRepLK; Stage381 connection) | '
+                              '395=Stage391_DeltaPost(post-Mamba residual delta only) | '
+                              '396=Stage392_FullPre(pre-Mamba complete UniRepLK output) | '
+                              '397=Stage394_ComplexBiMamba(alternating Complex-State BiMamba and adaptive RF) | '
                               '366=IQUMamba Stage4 + Cross-SNR EMA + Sync-Parameter FiLM | '
                               '367=IQUMamba Stage4 + Cross-SNR EMA only | '
                               '368=IQUMamba Stage4 + Sync-Parameter FiLM only | '
@@ -4225,6 +4514,8 @@ def parse_arguments():
                               '276=ICASSPWaveNet_5_ChunkMamba_5(strong local/global fusion) | '
                               '277=ICASSPWaveNet_10_ChunkMamba_10(strong local/global fusion) | '
                               '378=KUTIIDualSourceWaveNet(shared 30-block learnable-dilation WaveNet + source slots) | '
+                              '383=KUTIIDualSourceWaveNet_ParamMatch(Stage378 width-only parameter match) | '
+                              '384=KUTIIDualSourceWaveNet_Stage4FLOPsMatch+Stage381Modules(bottleneck BiMamba+UniRepLK+simplex mask) | '
                               '213=IQUMamba_CrossSNRReceiver_Stage4(combined cross-SNR and receiver-domain training) | '
                              '214=IQUMamba_ConfidenceSoftPIT_Stage4(SNR/epoch-adaptive probabilistic PIT, zero inference cost) | '
                              '215=IQUBiMamba_ComplexDiffShared_Stage4(bottleneck shared-core absolute/complex-difference scans) | '
@@ -5420,6 +5711,12 @@ def parse_arguments():
                        help='Disable DataLoader pin_memory')
     parser.add_argument('--require_cuda', action='store_true',
                        help='Fail immediately if CUDA is not available')
+    parser.add_argument('--data_parallel', action='store_true',
+                       help='Train with torch.nn.DataParallel on all visible CUDA GPUs; batch_size remains global')
+    parser.add_argument('--ddp', action='store_true',
+                       help='Train with DistributedDataParallel; launch with torchrun and treat batch_size as per-GPU')
+    parser.add_argument('--ddp_find_unused_parameters', action='store_true',
+                       help='Enable DDP unused-parameter detection for models with conditional trainable branches')
     parser.add_argument('--num_epochs', type=int, default=200,
                        help='Number of training epochs')
     parser.add_argument('--early_stop_patience', type=int, default=0,
@@ -5589,6 +5886,12 @@ def parse_arguments():
     ] or None
     if parsed_args.resume_checkpoint and parsed_args.init_checkpoint:
         parser.error("--resume_checkpoint and --init_checkpoint are mutually exclusive")
+    if parsed_args.ddp and parsed_args.data_parallel:
+        parser.error("--ddp and --data_parallel are mutually exclusive")
+    if parsed_args.ddp and parsed_args.multiple_runs:
+        parser.error("--ddp does not support --multiple_runs; launch one distributed run at a time")
+    if parsed_args.ddp and parsed_args.mode == 'ablation_losses':
+        parser.error("--ddp does not support ablation_losses mode")
     if parsed_args.pretrain_dataset_weights and not parsed_args.pretrain_data_choices:
         parser.error("--pretrain_dataset_weights requires --pretrain_data_choices")
     if (
@@ -5641,10 +5944,16 @@ def main():
             print(f"Number of Runs: {args.num_runs}")
             print(f"Starting Seed: {args.start_seed}")
         return
+
+    _initialize_distributed(args)
+    if _ddp_enabled(args):
+        atexit.register(_cleanup_distributed)
+    is_main_process = _ddp_is_main(args)
     
-    print("=" * 80)
-    print("IQU Mamba 1D Training and Testing Program")
-    print("=" * 80)
+    if is_main_process:
+        print("=" * 80)
+        print("IQU Mamba 1D Training and Testing Program")
+        print("=" * 80)
 
     if args.mode == 'ablation_losses':
         if args.multiple_runs:
@@ -5710,14 +6019,14 @@ def main():
         try:
             results_folder = run_single_experiment(args, seed=args.seed)
             
-            if args.mode == 'test_data':
+            if args.mode == 'test_data' and is_main_process:
                 print(f"Data loading test completed!")
-            else:
+            elif is_main_process:
                 print(f"Experiment completed! Results saved in: {results_folder}")
         except Exception as e:
-            if args.mode == 'test_data':
+            if args.mode == 'test_data' and is_main_process:
                 print(f"Data loading test failed: {str(e)}")
-            else:
+            elif is_main_process:
                 print(f"Experiment failed: {str(e)}")
             raise
 

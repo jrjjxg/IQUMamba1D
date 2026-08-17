@@ -31,6 +31,90 @@ from torch import nn
 import torch.nn.functional as functional
 
 
+class _Stage384EnhancedBottleneck(nn.Module):
+    """Stage381's three innovation families adapted to a WaveNet trunk.
+
+    The KU-TII trunk has no U-Net scales, so the modules are applied once at
+    its shared latent representation: independent complex-state BiMamba,
+    parallel UniRepLK residual context, and a source-wise simplex mask.
+    """
+
+    def __init__(
+        self,
+        channels: int,
+        num_sources: int = 2,
+        bottleneck_channels: int = 8,
+    ) -> None:
+        super().__init__()
+        from models.IQUBiMamba1D_CoreUpgrades import (
+            IndependentComplexStateBiMambaLayer,
+        )
+        from models.IQUMamba1D_RecentRFModules import (
+            ParallelFeatureDeltaAdapter,
+            UniRepLKNetBlock1D,
+        )
+
+        self.input_adapter = nn.Conv1d(
+            int(channels), int(bottleneck_channels), kernel_size=1
+        )
+        self.complex_bimamba = IndependentComplexStateBiMambaLayer(
+            int(bottleneck_channels),
+            d_state=8,
+            d_conv=4,
+            expand=2,
+            scan_checkpoint=True,
+            scan_backend="auto",
+            fusion_hidden=max(4, int(bottleneck_channels) // 2),
+            residual_scale_init=1.0,
+        )
+        # Keep this adapter parallel/residual, matching Stage381 semantics.
+        self.unireplk = ParallelFeatureDeltaAdapter(
+            int(bottleneck_channels),
+            UniRepLKNetBlock1D(
+                int(bottleneck_channels),
+                kernel_size=17,
+                ffn_factor=1,
+                layer_scale=1.0e-6,
+            ),
+            scale_init=0.05,
+        )
+        self.mask_head = nn.Conv1d(
+            int(bottleneck_channels),
+            int(num_sources) * int(bottleneck_channels),
+            kernel_size=1,
+        )
+        nn.init.zeros_(self.mask_head.weight)
+        nn.init.zeros_(self.mask_head.bias)
+        self.num_sources = int(num_sources)
+        self.bottleneck_channels = int(bottleneck_channels)
+        self.output_channels = int(bottleneck_channels)
+
+    def forward(
+        self,
+        context: torch.Tensor,
+        full_resolution: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        source = self.input_adapter(context)
+        mixed = self.complex_bimamba(source)
+        mixed = self.unireplk(source, mixed)
+        batch, channels, _ = mixed.shape
+        logits = self.mask_head(mixed).reshape(
+            batch, self.num_sources, channels, mixed.shape[-1]
+        )
+        masks = torch.softmax(logits, dim=1)
+        masks = functional.interpolate(
+            masks.flatten(0, 1),
+            size=full_resolution.shape[-1],
+            mode="linear",
+            align_corners=False,
+        ).reshape(batch, self.num_sources, channels, full_resolution.shape[-1])
+        latent = self.input_adapter(full_resolution)
+        masked = (latent.unsqueeze(1) * masks).reshape(
+            batch * self.num_sources, channels, full_resolution.shape[-1]
+        )
+        return masked, masks
+
+
 def _kaiming_conv1d(*args, **kwargs) -> nn.Conv1d:
     layer = nn.Conv1d(*args, **kwargs)
     nn.init.kaiming_normal_(layer.weight)
@@ -261,6 +345,7 @@ class KUTIIDualSourceWaveNet(KUTIIStyleLearnableDilationWaveNet):
         residual_layers: int = 30,
         dilation_cycle_length: int = 10,
         max_dilation: int = 1024,
+        enhanced_stage381: bool = False,
     ) -> None:
         if num_classes not in (4, 6):
             raise ValueError(
@@ -274,4 +359,51 @@ class KUTIIDualSourceWaveNet(KUTIIStyleLearnableDilationWaveNet):
             residual_layers=residual_layers,
             dilation_cycle_length=dilation_cycle_length,
             max_dilation=max_dilation,
+        )
+        self.enhanced_stage381 = bool(enhanced_stage381)
+        self.enhanced_bottleneck = (
+            _Stage384EnhancedBottleneck(
+                residual_channels,
+                num_sources=self.num_sources,
+                bottleneck_channels=min(8, residual_channels),
+            )
+            if self.enhanced_stage381
+            else None
+        )
+        if self.enhanced_stage381:
+            del self.output_projection
+            # A shared source projection is evaluated on the flattened source
+            # batch, then restored to [B, source, I/Q, L].
+            self.source_output_projection = _kaiming_conv1d(
+                self.enhanced_bottleneck.output_channels,
+                2,
+                kernel_size=1,
+            )
+            nn.init.zeros_(self.source_output_projection.weight)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if not self.enhanced_stage381:
+            return super().forward(x)
+        if x.ndim != 3 or x.shape[1] != self.input_channels:
+            raise ValueError(
+                "Expected I/Q input with shape (B, 2, L), "
+                f"got {tuple(x.shape)}"
+            )
+        hidden = functional.relu(self.input_projection(x))
+        skip_sum: torch.Tensor | None = None
+        for block in self.residual_layers:
+            hidden, skip = block(hidden)
+            skip_sum = skip if skip_sum is None else skip_sum + skip
+        assert skip_sum is not None
+        trunk = functional.relu(self.skip_projection(skip_sum / sqrt(len(self.residual_layers))))
+        # Keep the added SSM/RF/mask path at a true bottleneck resolution;
+        # running it over all 4096 samples would invalidate the FLOPs budget.
+        context = functional.avg_pool1d(trunk, kernel_size=8, stride=8, ceil_mode=True)
+        masked, _ = self.enhanced_bottleneck(context, trunk)
+        separated = self.source_output_projection(masked)
+        batch_slots, channels, length = separated.shape
+        return separated.reshape(
+            batch_slots // self.num_sources,
+            self.num_sources * channels,
+            length,
         )

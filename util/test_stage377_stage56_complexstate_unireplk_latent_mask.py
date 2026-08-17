@@ -38,7 +38,9 @@ from util.utils import Create_Mamba_model
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _small_model() -> IQUResUNet1D_ComplexStateUniRepLK_LatentMask:
+def _small_model(
+    latent_mask_mode: str = "real",
+) -> IQUResUNet1D_ComplexStateUniRepLK_LatentMask:
     return IQUResUNet1D_ComplexStateUniRepLK_LatentMask(
         input_size=64,
         input_channels=2,
@@ -64,7 +66,7 @@ def _small_model() -> IQUResUNet1D_ComplexStateUniRepLK_LatentMask:
         rf_large_kernel=5,
         rf_ffn_factor=2,
         rf_layer_scale=1.0e-6,
-        latent_mask_mode="real",
+        latent_mask_mode=latent_mask_mode,
     )
 
 

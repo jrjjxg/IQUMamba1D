@@ -1,0 +1,35 @@
+# Stage379: strict Stage377 mask-activation ablation.
+# All architecture and routing settings match Stage377; only the source-wise
+# softmax is replaced by independent sigmoid masks.
+model_config:
+  model_type: resunet1d_complexstate_unireplk_latent_mask_sigmoid
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+
+  # Stage364 independent complex-state BiMamba placement/settings.
+  bimamba_apply_stages: [1, 3]
+  bimamba_residual_scale_init: 1.0
+  complex_state_d_state: 8
+  complex_state_d_conv: 4
+  complex_state_expand: 2
+  complex_state_scan_checkpoint: true
+  complex_state_scan_backend: auto
+  complex_state_fusion_hidden: 64
+
+  # Stage310/365 parallel UniRepLK deltas.
+  rf_residual_scale_init: 0.05
+  rf_apply_stages: [0, 1, 2]
+  rf_large_kernel: 17
+  rf_ffn_factor: 4
+  rf_layer_scale: 1.0e-6
+
+  # Independent source masks: each mask lies in [0, 1], with no sum-to-one constraint.
+  latent_mask_mode: sigmoid
+  latent_mask_eps: 1.0e-6

@@ -758,6 +758,24 @@ class ParallelFeatureDeltaAdapter(nn.Module):
         return main + self.residual_scale * self.norm(delta)
 
 
+class ParallelFeatureFullAdapter(nn.Module):
+    """Add an operator's complete output to an independent main branch."""
+
+    def __init__(self, channels: int, operator: nn.Module,
+                 scale_init: float = 0.05) -> None:
+        super().__init__()
+        self.operator = operator
+        self.norm = nn.GroupNorm(1, channels)
+        self.residual_scale = nn.Parameter(torch.tensor(float(scale_init)))
+
+    def forward(self, source: torch.Tensor, main: torch.Tensor) -> torch.Tensor:
+        if source.shape != main.shape:
+            raise ValueError(
+                "parallel full-output source and main branch must have the same shape"
+            )
+        return main + self.residual_scale * self.norm(self.operator(source))
+
+
 class ScaleAwareParallelFusion1D(nn.Module):
     """Fuse FDConv and UniRepLK after matching their per-channel RMS scales."""
 

@@ -1,0 +1,27 @@
+# Stage389: Stage388 ablation with adaptive real-valued RF routing only.
+model_config:
+  model_type: resunet1d_stage389_adaptive_real_unireplk
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  bimamba_apply_stages: [1, 3]
+  bimamba_residual_scale_init: 1.0
+  complex_state_d_state: 8
+  complex_state_d_conv: 4
+  complex_state_expand: 2
+  complex_state_scan_checkpoint: true
+  complex_state_scan_backend: auto
+  complex_state_fusion_hidden: 64
+  rf_apply_stages: [0, 2]
+  rf_residual_scale_init: 0.05
+  rf_large_kernel: 17
+  rf_ffn_factor: 2
+  rf_layer_scale: 1.0e-6
+  latent_mask_mode: real
+  latent_mask_eps: 1.0e-6

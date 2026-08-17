@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+<path d="M 0 0 L 9 4.5 L 0 9 z" fill="#3A4149"/>
+</marker>
+<filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+<feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.08"/>
+</filter>
+</defs>
+<rect width="1920" height="1080" fill="#FFFFFF"/>
+<text x="960" y="42" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="30" font-weight="700"><tspan x="960" dy="0">Stage 377: Complex-State BiMamba + UniRepLK + Multi-Scale Latent Mask</tspan></text>
+<text x="960" y="70" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="17" font-weight="400"><tspan x="960" dy="0">No ASC  |  real simplex masks  |  one shared decoder call</tspan></text>
+<rect x="20" y="305" width="125" height="92" rx="7" fill="#FFFFFF" stroke="#2F67C7" stroke-width="1.8"/>
+<text x="82" y="333" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="17" font-weight="700"><tspan x="82" dy="0">I/Q mixture</tspan><tspan x="82" dy="27">y  [B, 2, L]</tspan></text>
+<path d="M 145 351 L 180 351" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="180" y="92" width="405" height="708" rx="14" fill="#F3F8FF" stroke="#2F67C7" stroke-width="2.5"/>
+<text x="382" y="122" text-anchor="middle" fill="#2F67C7" font-family="Arial" font-size="24" font-weight="700"><tspan x="382" dy="0">Encoder</tspan></text>
+<text x="382" y="147" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="15" font-weight="400"><tspan x="382" dy="0">four-scale residual feature pyramid</tspan></text>
+<rect x="218" y="165" width="330" height="112" rx="7" fill="#FFFFFF" stroke="#2F67C7" stroke-width="1.7"/>
+<text x="232" y="189" text-anchor="start" fill="#2F67C7" font-family="Arial" font-size="17" font-weight="700"><tspan x="232" dy="0">Stage 0</tspan></text>
+<text x="534" y="189" text-anchor="end" fill="#20252B" font-family="Arial" font-size="16" font-weight="700"><tspan x="534" dy="0">F0  [B, 32, L]</tspan></text>
+<rect x="253" y="202" width="260" height="28" rx="5" fill="#FFFDF7" stroke="#C99A34" stroke-width="1.3"/>
+<text x="383.0" y="222" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="383.0" dy="0">Residual Conv x2</tspan></text>
+<rect x="253" y="238" width="260" height="28" rx="5" fill="#FFFFFF" stroke="#E66A2C" stroke-width="1.3" stroke-dasharray="6 4"/>
+<text x="383.0" y="258" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="14" font-weight="700"><tspan x="383.0" dy="0">UniRepLK residual delta</tspan></text>
+<rect x="218" y="325" width="330" height="112" rx="7" fill="#FFFFFF" stroke="#2F67C7" stroke-width="1.7"/>
+<text x="232" y="349" text-anchor="start" fill="#2F67C7" font-family="Arial" font-size="17" font-weight="700"><tspan x="232" dy="0">Stage 1</tspan></text>
+<text x="534" y="349" text-anchor="end" fill="#20252B" font-family="Arial" font-size="16" font-weight="700"><tspan x="534" dy="0">F1  [B, 64, L/2]</tspan></text>
+<rect x="253" y="362" width="260" height="28" rx="5" fill="#FFFDF7" stroke="#C99A34" stroke-width="1.3"/>
+<text x="383.0" y="382" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="383.0" dy="0">Residual Conv x2</tspan></text>
+<rect x="236" y="398" width="176" height="28" rx="5" fill="#FFFFFF" stroke="#6652B8" stroke-width="1.3" stroke-dasharray="6 4"/>
+<text x="324" y="418" text-anchor="middle" fill="#6652B8" font-family="Arial" font-size="13" font-weight="700"><tspan x="324" dy="0">Independent BiMamba</tspan></text>
+<rect x="420" y="398" width="110" height="28" rx="5" fill="#FFFFFF" stroke="#E66A2C" stroke-width="1.3" stroke-dasharray="6 4"/>
+<text x="475" y="418" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="12" font-weight="700"><tspan x="475" dy="0">UniRepLK delta</tspan></text>
+<rect x="218" y="485" width="330" height="112" rx="7" fill="#FFFFFF" stroke="#2F67C7" stroke-width="1.7"/>
+<text x="232" y="509" text-anchor="start" fill="#2F67C7" font-family="Arial" font-size="17" font-weight="700"><tspan x="232" dy="0">Stage 2</tspan></text>
+<text x="534" y="509" text-anchor="end" fill="#20252B" font-family="Arial" font-size="16" font-weight="700"><tspan x="534" dy="0">F2  [B, 128, L/4]</tspan></text>
+<rect x="253" y="522" width="260" height="28" rx="5" fill="#FFFDF7" stroke="#C99A34" stroke-width="1.3"/>
+<text x="383.0" y="542" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="383.0" dy="0">Residual Conv x2</tspan></text>
+<rect x="253" y="558" width="260" height="28" rx="5" fill="#FFFFFF" stroke="#E66A2C" stroke-width="1.3" stroke-dasharray="6 4"/>
+<text x="383.0" y="578" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="14" font-weight="700"><tspan x="383.0" dy="0">UniRepLK residual delta</tspan></text>
+<rect x="218" y="645" width="330" height="112" rx="7" fill="#FFFFFF" stroke="#2F67C7" stroke-width="1.7"/>
+<text x="232" y="669" text-anchor="start" fill="#2F67C7" font-family="Arial" font-size="17" font-weight="700"><tspan x="232" dy="0">Stage 3 bottleneck</tspan></text>
+<text x="534" y="669" text-anchor="end" fill="#20252B" font-family="Arial" font-size="16" font-weight="700"><tspan x="534" dy="0">F3  [B, 256, L/8]</tspan></text>
+<rect x="253" y="682" width="260" height="28" rx="5" fill="#FFFDF7" stroke="#C99A34" stroke-width="1.3"/>
+<text x="383.0" y="702" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="383.0" dy="0">Residual Conv x2</tspan></text>
+<rect x="253" y="718" width="260" height="28" rx="5" fill="#FFFFFF" stroke="#6652B8" stroke-width="1.3" stroke-dasharray="6 4"/>
+<text x="383.0" y="738" text-anchor="middle" fill="#6652B8" font-family="Arial" font-size="14" font-weight="700"><tspan x="383.0" dy="0">Independent Complex-State BiMamba</tspan></text>
+<path d="M 382 277.0 L 382 325.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="400" y="305.0" text-anchor="start" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="400" dy="0">downsample x2</tspan></text>
+<path d="M 382 437.0 L 382 485.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="400" y="465.0" text-anchor="start" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="400" dy="0">downsample x2</tspan></text>
+<path d="M 382 597.0 L 382 645.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="400" y="625.0" text-anchor="start" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="400" dy="0">downsample x2</tspan></text>
+<rect x="650" y="112" width="450" height="666" rx="14" fill="#FFF8F2" stroke="#E66A2C" stroke-width="2.5"/>
+<text x="875" y="142" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="22" font-weight="700"><tspan x="875" dy="0">Multi-Scale Latent Mask &amp; Slot Packing</tspan></text>
+<text x="875" y="168" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="14" font-weight="400"><tspan x="875" dy="0">same operator form at all scales; H0-H3 have independent weights</tspan></text>
+<path d="M 585 221.0 L 684 221.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="616" y="212.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">F0</text>
+<rect x="684" y="187.0" width="225" height="68" rx="7" fill="#FFFFFF" stroke="#E66A2C" stroke-width="1.6"/>
+<text x="703" y="214.0" text-anchor="start" fill="#E66A2C" font-family="Arial" font-size="17" font-weight="700"><tspan x="703" dy="0">H0</tspan></text>
+<text x="758" y="214.0" text-anchor="start" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="758" dy="0">1x1 Conv: C0 -&gt; 2C0</tspan></text>
+<text x="796" y="240.0" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="14" font-weight="400"><tspan x="796" dy="0">softmax-slot mask</tspan></text>
+<path d="M 909 221.0 L 946 221.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 585 381.0 L 684 381.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="616" y="372.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">F1</text>
+<rect x="684" y="347.0" width="225" height="68" rx="7" fill="#FFFFFF" stroke="#E66A2C" stroke-width="1.6"/>
+<text x="703" y="374.0" text-anchor="start" fill="#E66A2C" font-family="Arial" font-size="17" font-weight="700"><tspan x="703" dy="0">H1</tspan></text>
+<text x="758" y="374.0" text-anchor="start" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="758" dy="0">1x1 Conv: C1 -&gt; 2C1</tspan></text>
+<text x="796" y="400.0" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="14" font-weight="400"><tspan x="796" dy="0">softmax-slot mask</tspan></text>
+<path d="M 909 381.0 L 946 381.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 585 541.0 L 684 541.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="616" y="532.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">F2</text>
+<rect x="684" y="507.0" width="225" height="68" rx="7" fill="#FFFFFF" stroke="#E66A2C" stroke-width="1.6"/>
+<text x="703" y="534.0" text-anchor="start" fill="#E66A2C" font-family="Arial" font-size="17" font-weight="700"><tspan x="703" dy="0">H2</tspan></text>
+<text x="758" y="534.0" text-anchor="start" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="758" dy="0">1x1 Conv: C2 -&gt; 2C2</tspan></text>
+<text x="796" y="560.0" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="14" font-weight="400"><tspan x="796" dy="0">softmax-slot mask</tspan></text>
+<path d="M 909 541.0 L 946 541.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 585 701.0 L 684 701.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="616" y="692.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">F3</text>
+<rect x="684" y="667.0" width="225" height="68" rx="7" fill="#FFFFFF" stroke="#E66A2C" stroke-width="1.6"/>
+<text x="703" y="694.0" text-anchor="start" fill="#E66A2C" font-family="Arial" font-size="17" font-weight="700"><tspan x="703" dy="0">H3</tspan></text>
+<text x="758" y="694.0" text-anchor="start" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="758" dy="0">1x1 Conv: C3 -&gt; 2C3</tspan></text>
+<text x="796" y="720.0" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="14" font-weight="400"><tspan x="796" dy="0">softmax-slot mask</tspan></text>
+<path d="M 909 701.0 L 946 701.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="946" y="184" width="115" height="535" rx="12" fill="#F7F4FF" stroke="#6652B8" stroke-width="2.0"/>
+<text x="1003" y="307" text-anchor="middle" fill="#6652B8" font-family="Arial" font-size="17" font-weight="700"><tspan x="1003" dy="0">element-wise</tspan><tspan x="1003" dy="29">mask</tspan><tspan x="1003" dy="29">then</tspan><tspan x="1003" dy="29">slot-to-batch</tspan><tspan x="1003" dy="29">view</tspan></text>
+<text x="1003" y="480" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="14" font-weight="700"><tspan x="1003" dy="0">[B, 2, C_i, L_i]</tspan><tspan x="1003" dy="24">-&gt;</tspan><tspan x="1003" dy="24">[2B, C_i, L_i]</tspan></text>
+<text x="1003" y="585" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="1003" dy="0">one utility</tspan><tspan x="1003" dy="21">reshape/view only</tspan><tspan x="1003" dy="21">no parameters</tspan></text>
+<path d="M 1061 221.0 L 1120 221.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1084" y="212.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">Z0</text>
+<text x="1112" y="243.0" text-anchor="end" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="1112" dy="0">[2B, 32, L]</tspan></text>
+<path d="M 1061 381.0 L 1120 381.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1084" y="372.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">Z1</text>
+<text x="1112" y="403.0" text-anchor="end" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="1112" dy="0">[2B, 64, L/2]</tspan></text>
+<path d="M 1061 541.0 L 1120 541.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1084" y="532.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">Z2</text>
+<text x="1112" y="563.0" text-anchor="end" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="1112" dy="0">[2B, 128, L/4]</tspan></text>
+<path d="M 1061 701.0 L 1120 701.0" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1084" y="692.0" text-anchor="middle" fill="#20252B" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="400">Z3</text>
+<text x="1112" y="723.0" text-anchor="end" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="1112" dy="0">[2B, 256, L/8]</tspan></text>
+<rect x="1160" y="92" width="440" height="708" rx="14" fill="#F3FAF4" stroke="#2F7D42" stroke-width="2.5"/>
+<text x="1380" y="122" text-anchor="middle" fill="#2F7D42" font-family="Arial" font-size="24" font-weight="700"><tspan x="1380" dy="0">Decoder</tspan></text>
+<text x="1380" y="147" text-anchor="middle" fill="#5E6875" font-family="Arial" font-size="15" font-weight="400"><tspan x="1380" dy="0">3-stage shared plain-skip decoder</tspan></text>
+<rect x="1255" y="690" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="714.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">masked bottleneck Z3</tspan></text>
+<rect x="1280" y="630" width="200" height="34" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="653.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Upsample x2</tspan></text>
+<rect x="1255" y="570" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="594.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Concat masked skip Z2</tspan></text>
+<rect x="1255" y="515" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="539.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Residual Conv Block</tspan></text>
+<rect x="1280" y="455" width="200" height="34" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="478.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Upsample x2</tspan></text>
+<rect x="1255" y="395" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="419.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Concat masked skip Z1</tspan></text>
+<rect x="1255" y="340" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="364.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Residual Conv Block</tspan></text>
+<rect x="1280" y="280" width="200" height="34" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="303.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Upsample x2</tspan></text>
+<rect x="1255" y="220" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1380.0" y="244.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1380.0" dy="0">Concat masked skip Z0</tspan></text>
+<rect x="1230" y="165" width="220" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1340.0" y="189.0" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1340.0" dy="0">Residual Conv Block</tspan></text>
+<rect x="1470" y="165" width="105" height="36" rx="6" fill="#FFFFFF" stroke="#2F7D42" stroke-width="1.6"/>
+<text x="1522" y="188" text-anchor="middle" fill="#2F7D42" font-family="Arial" font-size="14" font-weight="700"><tspan x="1522" dy="0">1x1 out</tspan></text>
+<path d="M 1450 183 L 1470 183" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 690 L 1380 664" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 630 L 1380 606" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 570 L 1380 551" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 515 L 1380 489" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 455 L 1380 431" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 395 L 1380 376" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 340 L 1380 314" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 280 L 1380 256" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1380 220 L 1380 201" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1120 221.0 L 1138 221.0 L 1138 238 L 1255 238" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1120 381.0 L 1138 381.0 L 1138 413 L 1255 413" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1120 541.0 L 1138 541.0 L 1138 588 L 1255 588" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1120 701.0 L 1138 701.0 L 1138 708 L 1255 708" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1380" y="766" text-anchor="middle" fill="#2F7D42" font-family="Arial" font-size="14" font-weight="700"><tspan x="1380" dy="0">one decoder invocation  |  effective batch = 2B  |  shared weights</tspan></text>
+<text x="1180" y="786" text-anchor="start" fill="#5E6875" font-family="Arial" font-size="13" font-weight="400"><tspan x="1180" dy="0">No ASC / no skip processors</tspan></text>
+<rect x="1640" y="225" width="250" height="150" rx="8" fill="#FFFFFF" stroke="#2F7D42" stroke-width="2.0"/>
+<text x="1765" y="253" text-anchor="middle" fill="#2F7D42" font-family="Arial" font-size="20" font-weight="700"><tspan x="1765" dy="0">Output</tspan></text>
+<text x="1765" y="283" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="15" font-weight="700"><tspan x="1765" dy="0">[2B, 2, L]</tspan><tspan x="1765" dy="24">reshape [B, 2, 2, L]</tspan><tspan x="1765" dy="24">-&gt; [B, 4, L]</tspan></text>
+<text x="1765" y="357" text-anchor="middle" fill="#2F7D42" font-family="Arial" font-size="14" font-weight="700"><tspan x="1765" dy="0">[S1_I, S1_Q, S2_I, S2_Q]</tspan></text>
+<path d="M 1575 183 L 1608 183 L 1608 300 L 1640 300" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="180" y="842" width="1420" height="196" rx="10" fill="#FFFFFF" stroke="#7A828C" stroke-width="1.7" stroke-dasharray="8 5"/>
+<text x="205" y="873" text-anchor="start" fill="#E66A2C" font-family="Arial" font-size="18" font-weight="700"><tspan x="205" dy="0">Generic latent-mask head (expanded once; applied independently for i = 0, 1, 2, 3)</tspan></text>
+<rect x="220" y="900" width="170" height="82" rx="7" fill="#F3F8FF" stroke="#2F67C7" stroke-width="1.8"/>
+<text x="305.0" y="927" text-anchor="middle" fill="#2F67C7" font-family="Arial" font-size="18" font-weight="700"><tspan x="305.0" dy="0">F^(i)</tspan></text>
+<text x="305.0" y="955" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="16" font-weight="400"><tspan x="305.0" dy="0">[B, C_i, L_i]</tspan></text>
+<rect x="435" y="900" width="190" height="82" rx="7" fill="#FFF8F2" stroke="#E66A2C" stroke-width="1.8"/>
+<text x="530.0" y="927" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="18" font-weight="700"><tspan x="530.0" dy="0">H_i: 1x1 Conv</tspan></text>
+<text x="530.0" y="955" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="16" font-weight="400"><tspan x="530.0" dy="0">C_i -&gt; 2C_i</tspan></text>
+<rect x="670" y="900" width="210" height="82" rx="7" fill="#FFF8F2" stroke="#E66A2C" stroke-width="1.8"/>
+<text x="775.0" y="927" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="18" font-weight="700"><tspan x="775.0" dy="0">reshape</tspan></text>
+<text x="775.0" y="955" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="16" font-weight="400"><tspan x="775.0" dy="0">[B, 2, C_i, L_i]</tspan></text>
+<rect x="925" y="900" width="210" height="82" rx="7" fill="#FFF8F2" stroke="#E66A2C" stroke-width="1.8"/>
+<text x="1030.0" y="927" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="18" font-weight="700"><tspan x="1030.0" dy="0">softmax</tspan></text>
+<text x="1030.0" y="955" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="16" font-weight="400"><tspan x="1030.0" dy="0">over source slots</tspan></text>
+<rect x="1180" y="900" width="170" height="82" rx="7" fill="#FFF8F2" stroke="#E66A2C" stroke-width="1.8"/>
+<text x="1265.0" y="927" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="18" font-weight="700"><tspan x="1265.0" dy="0">element-wise mask</tspan></text>
+<text x="1265.0" y="955" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="16" font-weight="400"><tspan x="1265.0" dy="0">F^(i) .* M^(i)</tspan></text>
+<rect x="1395" y="900" width="170" height="82" rx="7" fill="#F7F4FF" stroke="#6652B8" stroke-width="1.8"/>
+<text x="1480.0" y="927" text-anchor="middle" fill="#6652B8" font-family="Arial" font-size="18" font-weight="700"><tspan x="1480.0" dy="0">view</tspan></text>
+<text x="1480.0" y="955" text-anchor="middle" fill="#20252B" font-family="Arial" font-size="16" font-weight="400"><tspan x="1480.0" dy="0">[2B, C_i, L_i]</tspan></text>
+<path d="M 390 941 L 435 941" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 625 941 L 670 941" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 880 941 L 925 941" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1135 941 L 1180 941" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 1350 941 L 1395 941" fill="none" stroke="#3A4149" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="440" y="1015" text-anchor="middle" fill="#E66A2C" font-family="Arial" font-size="14" font-weight="700"><tspan x="440" dy="0">H0-H3: same structure, different channel widths, independent parameters</tspan></text>
+<text x="935" y="1017" text-anchor="middle" fill="#E66A2C" font-family="Cambria Math, Times New Roman" font-size="18" font-style="italic" font-weight="700">M1^(i)(c,t) + M2^(i)(c,t) = 1</text>
+<text x="1435" y="1015" text-anchor="middle" fill="#6652B8" font-family="Arial" font-size="14" font-weight="700"><tspan x="1435" dy="0">slot-to-batch: parameter-free reshape/view</tspan></text>
+<text x="382" y="824" text-anchor="middle" fill="#2F67C7" font-family="Arial" font-size="16" font-weight="700"><tspan x="382" dy="0">(a) Encoder</tspan></text>
+<text x="1380" y="824" text-anchor="middle" fill="#2F7D42" font-family="Arial" font-size="16" font-weight="700"><tspan x="1380" dy="0">(b) Decoder</tspan></text>
+</svg>

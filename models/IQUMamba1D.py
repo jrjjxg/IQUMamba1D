@@ -466,6 +466,12 @@ class UNetResDecoder(nn.Module):
         self.seg_layers = nn.ModuleList(seg_layers)
         self.skip_processors = nn.ModuleList(skip_processors) 
 
+        # Keep the auxiliary heads in the state dict for checkpoint compatibility,
+        # but do not optimize heads that cannot contribute to the returned output.
+        if not self.deep_supervision:
+            for seg_layer in self.seg_layers[:-1]:
+                seg_layer.requires_grad_(False)
+
     def forward(self, skips):
         lres_input = skips[-1]
         seg_outputs = []
@@ -474,9 +480,10 @@ class UNetResDecoder(nn.Module):
             processed_skip = self.skip_processors[s](skips[-(s+2)], x)
             x = torch.cat((x, processed_skip), 1)
             x = self.stages[s](x)
-            seg_outputs.append(self.seg_layers[s](x))
+            if self.deep_supervision or s == len(self.stages) - 1:
+                seg_outputs.append(self.seg_layers[s](x))
             lres_input = x
-        return seg_outputs[::-1] if self.deep_supervision else seg_outputs[-1]
+        return seg_outputs[::-1] if self.deep_supervision else seg_outputs[0]
 
 class IQUMamba1D(nn.Module):
     def __init__(self,

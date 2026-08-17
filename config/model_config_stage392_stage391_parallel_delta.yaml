@@ -1,0 +1,17 @@
+# Stage392: Stage391 with Stage381's pre-Mamba parallel residual-delta connection.
+model_config:
+  model_type: iqumamba_stage392_unireplk_parallel_delta
+  input_channels: 2
+  num_classes: 4
+  n_stages: 4
+  features_per_stage: [32, 64, 128, 256]
+  kernel_sizes: [3, 3, 3, 3]
+  strides: [1, 2, 2, 2]
+  n_conv_per_stage: [2, 2, 2, 2]
+  n_conv_per_stage_decoder: [2, 2, 1, 1]
+  deep_supervision: false
+  rf_apply_stages: [0, 2]
+  rf_residual_scale_init: 0.05
+  rf_large_kernel: 17
+  rf_ffn_factor: 4
+  rf_layer_scale: 1.0e-6

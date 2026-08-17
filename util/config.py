@@ -247,6 +247,7 @@ class MambaConfig:
             self.residual_layers = cfg.get('residual_layers', 30)
             self.dilation_cycle_length = cfg.get('dilation_cycle_length', 10)
             self.max_dilation = cfg.get('max_dilation', 1024)
+            self.comparison_variant = cfg.get('comparison_variant', 'full')
             self.mamba_d_state = cfg.get('mamba_d_state', 16)
             self.mamba_d_conv = cfg.get('mamba_d_conv', 4)
             self.mamba_expand = cfg.get('mamba_expand', 2)

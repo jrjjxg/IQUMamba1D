@@ -4,6 +4,7 @@
 # Unlike the RF-Challenge single-SOI config, this model has no case/SOI input.
 model_config:
   model_type: kutii_dual_source_wavenet
+  comparison_variant: full
   input_channels: 2
   num_classes: 4
 

@@ -15,6 +15,7 @@ from util.metrics import (
     strict_ber_iq_from_bits,
 )
 from util.visualize import plot_losses
+from util.distributed import distributed_sum
 from util.output_contracts import select_finest_separation_output
 from util.low_snr_training import (
     build_snr_view,
@@ -1544,7 +1545,12 @@ def train_model(
     if cross_snr_enable and (
         cross_snr_ema_teacher_enable or cross_snr_teacher_mode == 'frozen'
     ):
-        cross_snr_teacher = copy.deepcopy(model).to(device)
+        teacher_source = (
+            model.module
+            if isinstance(model, torch.nn.parallel.DistributedDataParallel)
+            else model
+        )
+        cross_snr_teacher = copy.deepcopy(teacher_source).to(device)
         if resume_cross_snr_teacher_state is not None:
             cross_snr_teacher.load_state_dict(resume_cross_snr_teacher_state)
         elif cross_snr_teacher_mode == 'frozen':
@@ -1671,6 +1677,9 @@ def train_model(
 
     for epoch in range(start_epoch, num_epochs):
         epoch_start_time = time.time()
+        train_sampler = getattr(train_loader, "sampler", None)
+        if hasattr(train_sampler, "set_epoch"):
+            train_sampler.set_epoch(epoch)
         _set_dataset_epoch(train_loader.dataset, epoch)
         _set_stage255_router_phase(epoch)
 
@@ -1954,8 +1963,23 @@ def train_model(
             _update_cross_snr_teacher()
             optimizer.zero_grad(set_to_none=True)
         
-        # Calculate average training loss
-        avg_train_loss = train_loss / len(train_loader)
+        # Every rank sees a different training shard. Reduce logging metrics so
+        # checkpoint selection and logs describe the global epoch.
+        (
+            train_loss,
+            train_batch_count,
+            train_ber_strict_sum,
+            train_ber_strict_den,
+        ) = distributed_sum(
+            (
+                train_loss,
+                len(train_loader),
+                train_ber_strict_sum,
+                train_ber_strict_den,
+            ),
+            device,
+        )
+        avg_train_loss = train_loss / train_batch_count
         train_losses.append(avg_train_loss)
         learning_rates.append(current_lr)
         avg_train_ber_strict = (
@@ -1966,7 +1990,13 @@ def train_model(
         
         # ========== Validation Phase ==========
         model.eval()
+        validation_model = (
+            model.module
+            if isinstance(model, torch.nn.parallel.DistributedDataParallel)
+            else model
+        )
         val_loss = 0.0
+        val_loss_den = 0
         val_si_snr_paper_sum = 0.0
         val_si_snr_paper_den = 0
         val_si_snr_repo_sum = 0.0
@@ -2004,13 +2034,15 @@ def train_model(
                         # Use mixed precision during validation too
                         if scaler is not None:
                             with torch.amp.autocast('cuda'):
-                                outputs = _model_forward(model, inputs, bits=bits)
+                                outputs = _model_forward(validation_model, inputs, bits=bits)
                             batch_loss = _compute_loss_fp32(outputs, targets, snr, inputs=inputs, bits=bits)
                         else:
-                            outputs = _model_forward(model, inputs, bits=bits)
+                            outputs = _model_forward(validation_model, inputs, bits=bits)
                             batch_loss = _compute_loss_fp32(outputs, targets, snr, inputs=inputs, bits=bits)
                         
-                        val_loss += batch_loss.item()
+                        validation_batch_size = int(inputs.shape[0])
+                        val_loss += batch_loss.item() * validation_batch_size
+                        val_loss_den += validation_batch_size
 
                         # --- Paper SI-SNR (SI-SDR) metric on validation set ---
                         outputs_eval, targets_eval, num_sources, best_perm_per_sample = _get_best_perm_and_sep(outputs, targets)
@@ -2021,16 +2053,16 @@ def train_model(
                         for k in range(num_sources):
                             pred_k = outputs_eval[:, 2 * k: 2 * k + 2, :]
                             tgt_k = targets_eval[:, 2 * k: 2 * k + 2, :]
-                            val_si_snr_paper_sum += si_snr_paper(pred_k, tgt_k).item()
-                            val_si_snr_paper_den += 1
-                            val_si_snr_repo_sum += si_snr_repo(pred_k, tgt_k).item()
-                            val_si_snr_repo_den += 1
+                            val_si_snr_paper_sum += si_snr_paper(pred_k, tgt_k).item() * validation_batch_size
+                            val_si_snr_paper_den += validation_batch_size
+                            val_si_snr_repo_sum += si_snr_repo(pred_k, tgt_k).item() * validation_batch_size
+                            val_si_snr_repo_den += validation_batch_size
                             if outputs_pit_eval is not None:
                                 pred_pit_k = outputs_pit_eval[:, 2 * k: 2 * k + 2, :]
-                                val_pit_si_snr_paper_sum += si_snr_paper(pred_pit_k, tgt_k).item()
-                                val_pit_si_snr_paper_den += 1
-                                val_pit_si_snr_repo_sum += si_snr_repo(pred_pit_k, tgt_k).item()
-                                val_pit_si_snr_repo_den += 1
+                                val_pit_si_snr_paper_sum += si_snr_paper(pred_pit_k, tgt_k).item() * validation_batch_size
+                                val_pit_si_snr_paper_den += validation_batch_size
+                                val_pit_si_snr_repo_sum += si_snr_repo(pred_pit_k, tgt_k).item() * validation_batch_size
+                                val_pit_si_snr_repo_den += validation_batch_size
 
                         # --- AMR classification accuracy ---
                         if _is_amr and isinstance(outputs, tuple) and _amr_mod_labels is not None:
@@ -2087,13 +2119,15 @@ def train_model(
                     # Use mixed precision during validation too
                     if scaler is not None:
                         with torch.amp.autocast('cuda'):
-                            outputs = _model_forward(model, inputs, bits=bits)
+                            outputs = _model_forward(validation_model, inputs, bits=bits)
                         batch_loss = _compute_loss_fp32(outputs, targets, snr, inputs=inputs, bits=bits)
                     else:
-                        outputs = _model_forward(model, inputs, bits=bits)
+                        outputs = _model_forward(validation_model, inputs, bits=bits)
                         batch_loss = _compute_loss_fp32(outputs, targets, snr, inputs=inputs, bits=bits)
                     
-                    val_loss += batch_loss.item()
+                    validation_batch_size = int(inputs.shape[0])
+                    val_loss += batch_loss.item() * validation_batch_size
+                    val_loss_den += validation_batch_size
 
                     # --- Paper SI-SNR (SI-SDR) metric on validation set ---
                     outputs_eval, targets_eval, num_sources, best_perm_per_sample = _get_best_perm_and_sep(outputs, targets)
@@ -2104,16 +2138,16 @@ def train_model(
                     for k in range(num_sources):
                         pred_k = outputs_eval[:, 2 * k: 2 * k + 2, :]
                         tgt_k = targets_eval[:, 2 * k: 2 * k + 2, :]
-                        val_si_snr_paper_sum += si_snr_paper(pred_k, tgt_k).item()
-                        val_si_snr_paper_den += 1
-                        val_si_snr_repo_sum += si_snr_repo(pred_k, tgt_k).item()
-                        val_si_snr_repo_den += 1
+                        val_si_snr_paper_sum += si_snr_paper(pred_k, tgt_k).item() * validation_batch_size
+                        val_si_snr_paper_den += validation_batch_size
+                        val_si_snr_repo_sum += si_snr_repo(pred_k, tgt_k).item() * validation_batch_size
+                        val_si_snr_repo_den += validation_batch_size
                         if outputs_pit_eval is not None:
                             pred_pit_k = outputs_pit_eval[:, 2 * k: 2 * k + 2, :]
-                            val_pit_si_snr_paper_sum += si_snr_paper(pred_pit_k, tgt_k).item()
-                            val_pit_si_snr_paper_den += 1
-                            val_pit_si_snr_repo_sum += si_snr_repo(pred_pit_k, tgt_k).item()
-                            val_pit_si_snr_repo_den += 1
+                            val_pit_si_snr_paper_sum += si_snr_paper(pred_pit_k, tgt_k).item() * validation_batch_size
+                            val_pit_si_snr_paper_den += validation_batch_size
+                            val_pit_si_snr_repo_sum += si_snr_repo(pred_pit_k, tgt_k).item() * validation_batch_size
+                            val_pit_si_snr_repo_den += validation_batch_size
 
                     # --- AMR classification accuracy ---
                     if _is_amr and isinstance(outputs, tuple) and _amr_mod_labels is not None:
@@ -2157,8 +2191,52 @@ def train_model(
                         phase="val",
                     )
         
-        # Calculate average validation loss
-        avg_val_loss = val_loss / len(val_loader)
+        (
+            val_loss,
+            val_loss_den,
+            val_si_snr_paper_sum,
+            val_si_snr_paper_den,
+            val_si_snr_repo_sum,
+            val_si_snr_repo_den,
+            val_pit_si_snr_paper_sum,
+            val_pit_si_snr_paper_den,
+            val_pit_si_snr_repo_sum,
+            val_pit_si_snr_repo_den,
+            val_amr_correct,
+            val_amr_total,
+            val_demod_correct_bits,
+            val_demod_total_bits,
+            val_demod_correct_symbols,
+            val_demod_total_symbols,
+            val_ber_strict_sum,
+            val_ber_strict_den,
+        ) = distributed_sum(
+            (
+                val_loss,
+                val_loss_den,
+                val_si_snr_paper_sum,
+                val_si_snr_paper_den,
+                val_si_snr_repo_sum,
+                val_si_snr_repo_den,
+                val_pit_si_snr_paper_sum,
+                val_pit_si_snr_paper_den,
+                val_pit_si_snr_repo_sum,
+                val_pit_si_snr_repo_den,
+                val_amr_correct,
+                val_amr_total,
+                val_demod_correct_bits,
+                val_demod_total_bits,
+                val_demod_correct_symbols,
+                val_demod_total_symbols,
+                val_ber_strict_sum,
+                val_ber_strict_den,
+            ),
+            device,
+        )
+
+        # Validation shards can end with different batch sizes, so aggregate by
+        # sample count rather than giving the final partial batch extra weight.
+        avg_val_loss = val_loss / val_loss_den
         val_losses.append(avg_val_loss)
 
         # Step schedulers only after the epoch's optimizer updates.  Calling
@@ -2306,8 +2384,19 @@ def train_model(
     
     # Final evaluation
     logger.info("Starting final model evaluation...")
-    snr_metrics = test_model(
-            model, snr_loaders, criterion, device, logger, results_folder,
+    distributed = (
+        torch.distributed.is_available()
+        and torch.distributed.is_initialized()
+    )
+    snr_metrics = None
+    if not distributed or torch.distributed.get_rank() == 0:
+        evaluation_model = (
+            model.module
+            if isinstance(model, torch.nn.parallel.DistributedDataParallel)
+            else model
+        )
+        snr_metrics = test_model(
+            evaluation_model, snr_loaders, criterion, device, logger, results_folder,
             num_plots=1, num_points=256, input_size=input_size,
             data_choice=data_choice, signal_names=signal_names,
             save_artifacts=save_artifacts,
@@ -2324,6 +2413,10 @@ def train_model(
             phase_flip_min_sc=phase_flip_min_sc,
             phase_flip_mode=phase_flip_mode,
         )
+    if distributed:
+        shared_metrics = [snr_metrics]
+        torch.distributed.broadcast_object_list(shared_metrics, src=0)
+        snr_metrics = shared_metrics[0]
     
     # Save training history
     training_history = {

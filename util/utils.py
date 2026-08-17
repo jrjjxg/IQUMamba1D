@@ -115,6 +115,34 @@ def Create_Mamba_model(config: MambaConfig, logger, input_size_, device_override
                 f"({config.model_config.get('rf_module_type')})"
             )
         return _create_iqumamba_recent_rf_model(config)
+    if config.model_type in {
+        "iqumamba_stage391_unireplk_post_mamba",
+        "iqumamba_stage392_unireplk_parallel_delta",
+        "iqumamba_stage393_adaptive_rf_post_mamba",
+        "iqumamba_stage394_adaptive_rf_parallel_delta",
+        "iqumamba_stage395_unireplk_delta_post",
+        "iqumamba_stage396_unireplk_full_pre",
+        "iqumamba_stage397_stage394_complex_bimamba",
+    }:
+        if logger is not None:
+            descriptions = {
+                "iqumamba_stage391_unireplk_post_mamba":
+                    "Stage391 (Stage310 connection, UniRepLK at stages 0/2)",
+                "iqumamba_stage392_unireplk_parallel_delta":
+                    "Stage392 (Stage391 with Stage381 parallel-delta connection)",
+                "iqumamba_stage393_adaptive_rf_post_mamba":
+                    "Stage393 (Stage391 with Stage389 adaptive RF UniRepLK)",
+                "iqumamba_stage394_adaptive_rf_parallel_delta":
+                    "Stage394 (Stage392 with Stage389 adaptive RF UniRepLK)",
+                "iqumamba_stage395_unireplk_delta_post":
+                    "Stage395 (Delta-Post: post-Mamba UniRepLK residual delta)",
+                "iqumamba_stage396_unireplk_full_pre":
+                    "Stage396 (Full-Pre: pre-Mamba complete UniRepLK output)",
+                "iqumamba_stage397_stage394_complex_bimamba":
+                    "Stage397 (Stage394 with Complex-State BiMamba at stages 1/3)",
+            }
+            logger.info(f"Model Type: {descriptions[config.model_type]}")
+        return _create_stage391_396_model(config)
     if config.model_type == "iqumamba_fdconv_unirep_ablation":
         if logger is not None:
             logger.info(
@@ -420,6 +448,60 @@ def Create_Mamba_model(config: MambaConfig, logger, input_size_, device_override
             logger.info(
                 "Model Type: Stage377 (Stage56 plain decoder + independent "
                 "complex-state BiMamba + UniRepLK + real latent mask)"
+            )
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_complexstate_unireplk_latent_mask_sigmoid":
+        if logger is not None:
+            logger.info(
+                "Model Type: Stage379 (Stage377 with independent sigmoid "
+                "latent masks instead of source-wise softmax)"
+            )
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_complexstate_unireplk_light_separator":
+        if logger is not None:
+            logger.info(
+                "Model Type: Stage380 (Stage377 + lightweight dilated "
+                "depthwise temporal mask separator)"
+            )
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_complexstate_unireplk_no_stage1":
+        if logger is not None:
+            logger.info(
+                "Model Type: Stage381 (Stage377 without encoder-stage1 UniRepLK)"
+            )
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_complexstate_unireplk_no_stage1_xl":
+        if logger is not None:
+            logger.info(
+                "Model Type: Stage385 (Stage381-XL without encoder-stage1 "
+                "UniRepLK; widths 96/192/384/768)"
+            )
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_stage386_unireplk_backbone":
+        if logger is not None:
+            logger.info("Model Type: Stage386 (Stage381 with replaceable residual cores replaced by UniRepLK)")
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_stage387_integrated_unireplk":
+        if logger is not None:
+            logger.info("Model Type: Stage387 (one integrated UniRepLK block per encoder/decoder level)")
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_stage388_adaptive_complex_unireplk":
+        if logger is not None:
+            logger.info("Model Type: Stage388 (adaptive RF-routed complex UniRepLK)")
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_stage389_adaptive_real_unireplk":
+        if logger is not None:
+            logger.info("Model Type: Stage389 (Stage388 routing-only ablation)")
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_stage390_fixed_complex_unireplk":
+        if logger is not None:
+            logger.info("Model Type: Stage390 (Stage388 fixed-complex ablation)")
+        return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
+    if config.model_type == "resunet1d_complexstate_unireplk_separator":
+        if logger is not None:
+            logger.info(
+                "Model Type: Stage382 (Stage377 UniRepLK adapters relocated "
+                "from encoder to mask separator)"
             )
         return _create_resunet1d_complexstate_unireplk_latent_mask_model(config)
     if config.model_type == "resunet1d_hyena_bottleneck":
@@ -1125,9 +1207,23 @@ def Create_Mamba_model(config: MambaConfig, logger, input_size_, device_override
         return _create_kutii_learnable_dilation_wavenet_model(config)
     if config.model_type == "kutii_dual_source_wavenet":
         if logger is not None:
+            variant = str(getattr(config, "comparison_variant", "full"))
+            variant_labels = {
+                "full": "Stage 378 full (256 channels, 30 blocks)",
+                "param_match": "Stage 383 ParamMatch (108 channels, 30 blocks)",
+                "flops_match": "Stage 384 legacy FLOPsMatch (56 channels, 30 blocks)",
+                "flops_match_stage381_enhanced": (
+                    "Stage 384 Stage4-FLOPsMatch + Stage381 modules "
+                    "(52 channels, 30 blocks)"
+                ),
+            }
+            variant_label = variant_labels.get(
+                variant,
+                f"comparison variant={variant}",
+            )
             logger.info(
                 "Model Type: KUTIIDualSourceWaveNet "
-                "(Stage 378, shared learnable-dilation trunk + source slots)"
+                f"({variant_label}, shared learnable-dilation trunk + source slots)"
             )
         return _create_kutii_dual_source_wavenet_model(config)
     if config.model_type == "iqumamba_decodermamba":
@@ -1470,6 +1566,59 @@ def _create_iqumamba_recent_rf_model(config):
         rf_residual_scale_init=float(cfg.get("rf_residual_scale_init", 0.05)),
         rf_module_config=cfg,
     ).to(device)
+
+
+def _create_stage391_396_model(config):
+    from models.IQUMamba1D_Stage391Ablations import (
+        IQUMamba1D_Stage391,
+        IQUMamba1D_Stage392,
+        IQUMamba1D_Stage393,
+        IQUMamba1D_Stage394,
+        IQUMamba1D_Stage395,
+        IQUMamba1D_Stage396,
+        IQUMamba1D_Stage397,
+    )
+
+    cfg = config.model_config
+    model_classes = {
+        "iqumamba_stage391_unireplk_post_mamba": IQUMamba1D_Stage391,
+        "iqumamba_stage392_unireplk_parallel_delta": IQUMamba1D_Stage392,
+        "iqumamba_stage393_adaptive_rf_post_mamba": IQUMamba1D_Stage393,
+        "iqumamba_stage394_adaptive_rf_parallel_delta": IQUMamba1D_Stage394,
+        "iqumamba_stage395_unireplk_delta_post": IQUMamba1D_Stage395,
+        "iqumamba_stage396_unireplk_full_pre": IQUMamba1D_Stage396,
+        "iqumamba_stage397_stage394_complex_bimamba": IQUMamba1D_Stage397,
+    }
+    model_class = model_classes[config.model_type]
+    model_kwargs = dict(
+        input_size=input_size,
+        input_channels=config.input_channels,
+        n_stages=config.n_stages,
+        features_per_stage=config.features_per_stage,
+        conv_op=nn.Conv1d,
+        kernel_sizes=config.kernel_sizes,
+        strides=config.strides,
+        n_conv_per_stage=config.n_conv_per_stage,
+        num_classes=config.num_classes,
+        n_conv_per_stage_decoder=config.n_conv_per_stage_decoder,
+        deep_supervision=config.deep_supervision,
+        rf_residual_scale_init=float(cfg.get("rf_residual_scale_init", 0.05)),
+        rf_large_kernel=int(cfg.get("rf_large_kernel", 17)),
+        rf_kernels=tuple(int(value) for value in cfg.get("rf_kernels", (9, 17))),
+        rf_ffn_factor=int(cfg.get("rf_ffn_factor", 4)),
+        rf_layer_scale=float(cfg.get("rf_layer_scale", 1e-6)),
+    )
+    if config.model_type == "iqumamba_stage397_stage394_complex_bimamba":
+        model_kwargs.update(
+            complex_state_d_state=int(cfg.get("complex_state_d_state", 8)),
+            complex_state_d_conv=int(cfg.get("complex_state_d_conv", 4)),
+            complex_state_expand=int(cfg.get("complex_state_expand", 2)),
+            complex_state_scan_checkpoint=bool(cfg.get("complex_state_scan_checkpoint", True)),
+            complex_state_scan_backend=str(cfg.get("complex_state_scan_backend", "auto")),
+            complex_state_fusion_hidden=int(cfg.get("complex_state_fusion_hidden", 64)),
+            bimamba_residual_scale_init=float(cfg.get("bimamba_residual_scale_init", 1.0)),
+        )
+    return model_class(**model_kwargs).to(device)
 
 
 def _create_iqumamba_fdconv_unirep_ablation_model(config):
@@ -4684,13 +4833,61 @@ def _create_resunet1d_noasc_latent_mask_model(config):
 
 
 def _create_resunet1d_complexstate_unireplk_latent_mask_model(config):
-    """Factory for Stage377's strict no-ASC Stage371 combination."""
+    """Factory for Stage377 and its mask-estimator ablations."""
     from models.IQUResUNet1D_ComplexStateUniRepLK_LatentMask import (
         IQUResUNet1D_ComplexStateUniRepLK_LatentMask,
     )
 
     cfg = config.model_config
-    return IQUResUNet1D_ComplexStateUniRepLK_LatentMask(
+    model_class = IQUResUNet1D_ComplexStateUniRepLK_LatentMask
+    separator_kwargs = {}
+    backbone_kwargs = {}
+    if config.model_type == "resunet1d_stage386_unireplk_backbone":
+        from models.IQUResUNet1D_UniRepLKBackbone import IQUResUNet1D_Stage386
+        model_class = IQUResUNet1D_Stage386
+    elif config.model_type == "resunet1d_stage387_integrated_unireplk":
+        from models.IQUResUNet1D_UniRepLKBackbone import IQUResUNet1D_Stage387
+        model_class = IQUResUNet1D_Stage387
+    elif config.model_type == "resunet1d_stage388_adaptive_complex_unireplk":
+        from models.IQUResUNet1D_UniRepLKBackbone import IQUResUNet1D_Stage388
+        model_class = IQUResUNet1D_Stage388
+    elif config.model_type == "resunet1d_stage389_adaptive_real_unireplk":
+        from models.IQUResUNet1D_UniRepLKBackbone import IQUResUNet1D_Stage389
+        model_class = IQUResUNet1D_Stage389
+    elif config.model_type == "resunet1d_stage390_fixed_complex_unireplk":
+        from models.IQUResUNet1D_UniRepLKBackbone import IQUResUNet1D_Stage390
+        model_class = IQUResUNet1D_Stage390
+    if config.model_type == "resunet1d_complexstate_unireplk_light_separator":
+        from models.IQUResUNet1D_LightMaskSeparator import (
+            IQUResUNet1D_ComplexStateUniRepLK_LightMaskSeparator,
+        )
+
+        model_class = IQUResUNet1D_ComplexStateUniRepLK_LightMaskSeparator
+        separator_kwargs = {
+            "separator_kernel_size": int(
+                cfg.get("separator_kernel_size", 5)
+            ),
+            "separator_dilations": tuple(
+                int(value)
+                for value in cfg.get("separator_dilations", (1, 2))
+            ),
+            "separator_residual_scale_init": float(
+                cfg.get("separator_residual_scale_init", 0.1)
+            ),
+        }
+    elif config.model_type == "resunet1d_complexstate_unireplk_separator":
+        from models.IQUResUNet1D_UniRepLKSeparator import (
+            IQUResUNet1D_ComplexStateUniRepLKSeparator,
+        )
+
+        model_class = IQUResUNet1D_ComplexStateUniRepLKSeparator
+        separator_kwargs = {
+            "separator_unireplk_stages": tuple(
+                int(value)
+                for value in cfg.get("separator_unireplk_stages", (0, 1, 2))
+            ),
+        }
+    return model_class(
         input_size=input_size,
         input_channels=config.input_channels,
         n_stages=config.n_stages,
@@ -4729,6 +4926,8 @@ def _create_resunet1d_complexstate_unireplk_latent_mask_model(config):
         rf_layer_scale=float(cfg.get("rf_layer_scale", 1e-6)),
         latent_mask_mode=str(cfg.get("latent_mask_mode", "real")),
         latent_mask_eps=float(cfg.get("latent_mask_eps", 1.0e-6)),
+        **backbone_kwargs,
+        **separator_kwargs,
     ).to(device)
 
 
@@ -7559,6 +7758,9 @@ def _create_kutii_dual_source_wavenet_model(config: MambaConfig):
         residual_layers=int(getattr(config, "residual_layers", 30)),
         dilation_cycle_length=int(getattr(config, "dilation_cycle_length", 10)),
         max_dilation=int(getattr(config, "max_dilation", 1024)),
+        enhanced_stage381=bool(
+            config.model_config.get("enhanced_stage381", False)
+        ),
     ).to(device)
 
 

@@ -1,0 +1,318 @@
+Dataset: 8PSK-A, DataLength: 4096
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  19.72 M
+fwd MACs:                                                               1.4 TMACs
+fwd FLOPs:                                                              2.81 TFLOPS
+Overall [Fixed] - SI-SNR_real: -2.9929 dB, SI-SNR_paper: -2.9929 dB, SI-SNR_repo: -2.9929 dB, SI-SNR_complex: -2.9577 dB
+Overall [Fixed] - MSE: 0.020534, ScaleAligned_MSE: 0.017134, SC: 0.5796, Pearson: 0.5797
+Overall [Fixed] - SI-SNR_real: -1.3502 dB, SI-SNR_paper: -1.3502 dB, SI-SNR_repo: -1.3502 dB, SI-SNR_complex: -1.3227 dB
+Overall [Fixed] - MSE: 0.031696, ScaleAligned_MSE: 0.022615, SC: 0.6512, Pearson: 0.6513
+Overall [Fixed] - SI-SNR_real: -0.4524 dB, SI-SNR_paper: -0.4524 dB, SI-SNR_repo: -0.4524 dB, SI-SNR_complex: -0.4279 dB
+Overall [Fixed] - MSE: 0.051789, ScaleAligned_MSE: 0.031254, SC: 0.6892, Pearson: 0.6892
+Overall [Fixed] - SI-SNR_real: 0.5326 dB, SI-SNR_paper: 0.5326 dB, SI-SNR_repo: 0.5326 dB, SI-SNR_complex: 0.5543 dB
+Overall [Fixed] - MSE: 0.072803, ScaleAligned_MSE: 0.045053, SC: 0.7283, Pearson: 0.7284
+Overall [Fixed] - SI-SNR_real: 3.6498 dB, SI-SNR_paper: 3.6498 dB, SI-SNR_repo: 3.6498 dB, SI-SNR_complex: 3.6678 dB
+Overall [Fixed] - MSE: 0.061775, ScaleAligned_MSE: 0.047576, SC: 0.8331, Pearson: 0.8333
+Overall [Fixed] - SI-SNR_real: 7.0871 dB, SI-SNR_paper: 7.0871 dB, SI-SNR_repo: 7.0871 dB, SI-SNR_complex: 7.1002 dB
+Overall [Fixed] - MSE: 0.040157, ScaleAligned_MSE: 0.035344, SC: 0.9081, Pearson: 0.9082
+Overall [Fixed] - SI-SNR_real: 11.4237 dB, SI-SNR_paper: 11.4237 dB, SI-SNR_repo: 11.4237 dB, SI-SNR_complex: 11.4367 dB
+Overall [Fixed] - MSE: 0.020245, ScaleAligned_MSE: 0.018932, SC: 0.9572, Pearson: 0.9572
+Overall [Fixed] - SI-SNR_real: 16.8504 dB, SI-SNR_paper: 16.8504 dB, SI-SNR_repo: 16.8504 dB, SI-SNR_complex: 16.8635 dB
+Overall [Fixed] - MSE: 0.008114, ScaleAligned_MSE: 0.007894, SC: 0.9834, Pearson: 0.9834
+Overall [Fixed] - SI-SNR_real: 21.7218 dB, SI-SNR_paper: 21.7218 dB, SI-SNR_repo: 21.7218 dB, SI-SNR_complex: 21.7355 dB
+Overall [Fixed] - MSE: 0.002986, ScaleAligned_MSE: 0.002951, SC: 0.9940, Pearson: 0.9940
+Overall [Fixed] - SI-SNR_real: 25.0342 dB, SI-SNR_paper: 25.0342 dB, SI-SNR_repo: 25.0342 dB, SI-SNR_complex: 25.0475 dB
+Overall [Fixed] - MSE: 0.001418, ScaleAligned_MSE: 0.001405, SC: 0.9972, Pearson: 0.9972
+Overall [Fixed] - SI-SNR_real: 26.8209 dB, SI-SNR_paper: 26.8209 dB, SI-SNR_repo: 26.8209 dB, SI-SNR_complex: 26.8361 dB
+Overall [Fixed] - MSE: 0.000903, ScaleAligned_MSE: 0.000896, SC: 0.9982, Pearson: 0.9982
+Global Avg Inference Time per Sample: 2.7876 ms
+Dataset: 8PSK-B, DataLength: 4096
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  19.72 M
+fwd MACs:                                                               1.4 TMACs
+fwd FLOPs:                                                              2.81 TFLOPS
+Overall [Fixed] - SI-SNR_real: -3.3891 dB, SI-SNR_paper: -3.3891 dB, SI-SNR_repo: -3.3891 dB, SI-SNR_complex: -3.3563 dB
+Overall [Fixed] - MSE: 0.020642, ScaleAligned_MSE: 0.017891, SC: 0.5620, Pearson: 0.5622
+Overall [Fixed] - SI-SNR_real: -0.4405 dB, SI-SNR_paper: -0.4405 dB, SI-SNR_repo: -0.4405 dB, SI-SNR_complex: -0.4169 dB
+Overall [Fixed] - MSE: 0.019875, ScaleAligned_MSE: 0.016043, SC: 0.6883, Pearson: 0.6885
+Overall [Fixed] - SI-SNR_real: 2.2750 dB, SI-SNR_paper: 2.2750 dB, SI-SNR_repo: 2.2750 dB, SI-SNR_complex: 2.2979 dB
+Overall [Fixed] - MSE: 0.018450, ScaleAligned_MSE: 0.013609, SC: 0.7893, Pearson: 0.7895
+Overall [Fixed] - SI-SNR_real: 5.1950 dB, SI-SNR_paper: 5.1950 dB, SI-SNR_repo: 5.1950 dB, SI-SNR_complex: 5.2150 dB
+Overall [Fixed] - MSE: 0.016194, ScaleAligned_MSE: 0.011030, SC: 0.8722, Pearson: 0.8723
+Overall [Fixed] - SI-SNR_real: 8.3535 dB, SI-SNR_paper: 8.3535 dB, SI-SNR_repo: 8.3535 dB, SI-SNR_complex: 8.3734 dB
+Overall [Fixed] - MSE: 0.013756, ScaleAligned_MSE: 0.007538, SC: 0.9302, Pearson: 0.9304
+Overall [Fixed] - SI-SNR_real: 12.4792 dB, SI-SNR_paper: 12.4792 dB, SI-SNR_repo: 12.4792 dB, SI-SNR_complex: 12.4981 dB
+Overall [Fixed] - MSE: 0.008883, ScaleAligned_MSE: 0.003896, SC: 0.9698, Pearson: 0.9699
+Overall [Fixed] - SI-SNR_real: 17.0307 dB, SI-SNR_paper: 17.0307 dB, SI-SNR_repo: 17.0307 dB, SI-SNR_complex: 17.0566 dB
+Overall [Fixed] - MSE: 0.005694, ScaleAligned_MSE: 0.001631, SC: 0.9883, Pearson: 0.9883
+Overall [Fixed] - SI-SNR_real: 20.7656 dB, SI-SNR_paper: 20.7656 dB, SI-SNR_repo: 20.7656 dB, SI-SNR_complex: 20.8021 dB
+Overall [Fixed] - MSE: 0.003689, ScaleAligned_MSE: 0.000817, SC: 0.9944, Pearson: 0.9944
+Overall [Fixed] - SI-SNR_real: 23.7126 dB, SI-SNR_paper: 23.7126 dB, SI-SNR_repo: 23.7126 dB, SI-SNR_complex: 23.7688 dB
+Overall [Fixed] - MSE: 0.002988, ScaleAligned_MSE: 0.000474, SC: 0.9968, Pearson: 0.9968
+Overall [Fixed] - SI-SNR_real: 25.2720 dB, SI-SNR_paper: 25.2720 dB, SI-SNR_repo: 25.2720 dB, SI-SNR_complex: 25.3455 dB
+Overall [Fixed] - MSE: 0.002418, ScaleAligned_MSE: 0.000357, SC: 0.9976, Pearson: 0.9976
+Overall [Fixed] - SI-SNR_real: 25.8219 dB, SI-SNR_paper: 25.8219 dB, SI-SNR_repo: 25.8219 dB, SI-SNR_complex: 25.9046 dB
+Overall [Fixed] - MSE: 0.002253, ScaleAligned_MSE: 0.000342, SC: 0.9977, Pearson: 0.9978
+Global Avg Inference Time per Sample: 2.7013 ms
+=== Training Summary ===
+Total training time: 15382.1s (256.4m)
+Average epoch time: 248.1s
+Best validation loss: -12.4118
+Dataset: 8PSK-C, DataLength: 4096
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  20.51 M
+fwd MACs:                                                               1.62 TMACs
+fwd FLOPs:                                                              3.25 TFLOPS
+Overall [Fixed] - SI-SNR_real: -5.6587 dB, SI-SNR_paper: -5.6587 dB, SI-SNR_repo: -5.6587 dB, SI-SNR_complex: -5.6047 dB
+Overall [Fixed] - MSE: 0.007070, ScaleAligned_MSE: 0.006940, SC: 0.4651, Pearson: 0.4652
+Overall [Fixed] - SI-SNR_real: -4.1764 dB, SI-SNR_paper: -4.1764 dB, SI-SNR_repo: -4.1764 dB, SI-SNR_complex: -4.1346 dB
+Overall [Fixed] - MSE: 0.007852, ScaleAligned_MSE: 0.007805, SC: 0.5279, Pearson: 0.5279
+Overall [Fixed] - SI-SNR_real: -3.3192 dB, SI-SNR_paper: -3.3192 dB, SI-SNR_repo: -3.3192 dB, SI-SNR_complex: -3.2809 dB
+Overall [Fixed] - MSE: 0.008102, ScaleAligned_MSE: 0.008064, SC: 0.5653, Pearson: 0.5654
+Overall [Fixed] - SI-SNR_real: -2.7101 dB, SI-SNR_paper: -2.7101 dB, SI-SNR_repo: -2.7101 dB, SI-SNR_complex: -2.6759 dB
+Overall [Fixed] - MSE: 0.008933, ScaleAligned_MSE: 0.008259, SC: 0.5919, Pearson: 0.5921
+Overall [Fixed] - SI-SNR_real: -1.6174 dB, SI-SNR_paper: -1.6174 dB, SI-SNR_repo: -1.6174 dB, SI-SNR_complex: -1.5835 dB
+Overall [Fixed] - MSE: 0.010963, ScaleAligned_MSE: 0.009024, SC: 0.6394, Pearson: 0.6397
+Overall [Fixed] - SI-SNR_real: 0.4339 dB, SI-SNR_paper: 0.4339 dB, SI-SNR_repo: 0.4339 dB, SI-SNR_complex: 0.4639 dB
+Overall [Fixed] - MSE: 0.010064, ScaleAligned_MSE: 0.007698, SC: 0.7232, Pearson: 0.7236
+Overall [Fixed] - SI-SNR_real: 2.7434 dB, SI-SNR_paper: 2.7434 dB, SI-SNR_repo: 2.7434 dB, SI-SNR_complex: 2.7720 dB
+Overall [Fixed] - MSE: 0.008916, ScaleAligned_MSE: 0.006175, SC: 0.8042, Pearson: 0.8046
+Overall [Fixed] - SI-SNR_real: 4.9279 dB, SI-SNR_paper: 4.9279 dB, SI-SNR_repo: 4.9279 dB, SI-SNR_complex: 4.9530 dB
+Overall [Fixed] - MSE: 0.006743, ScaleAligned_MSE: 0.004625, SC: 0.8646, Pearson: 0.8649
+Overall [Fixed] - SI-SNR_real: 6.3932 dB, SI-SNR_paper: 6.3932 dB, SI-SNR_repo: 6.3932 dB, SI-SNR_complex: 6.4216 dB
+Overall [Fixed] - MSE: 0.005614, ScaleAligned_MSE: 0.003689, SC: 0.8965, Pearson: 0.8968
+Overall [Fixed] - SI-SNR_real: 7.2670 dB, SI-SNR_paper: 7.2670 dB, SI-SNR_repo: 7.2670 dB, SI-SNR_complex: 7.2961 dB
+Overall [Fixed] - MSE: 0.005256, ScaleAligned_MSE: 0.003202, SC: 0.9122, Pearson: 0.9124
+Overall [Fixed] - SI-SNR_real: 7.5540 dB, SI-SNR_paper: 7.5540 dB, SI-SNR_repo: 7.5540 dB, SI-SNR_complex: 7.5846 dB
+Overall [Fixed] - MSE: 0.004941, ScaleAligned_MSE: 0.003048, SC: 0.9168, Pearson: 0.9171
+Global Avg Inference Time per Sample: 3.5409 ms
+=== Training Summary ===
+Total training time: 22807.8s (380.1m)
+Average epoch time: 316.8s
+Best validation loss: -1.0642
+Dataset: 8PSK-E, DataLength: 8192
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  24.06 M
+fwd MACs:                                                               2.97 TMACs
+fwd FLOPs:                                                              5.95 TFLOPS
+Overall [Fixed] - SI-SNR_real: -2.9600 dB, SI-SNR_paper: -2.9600 dB, SI-SNR_repo: -2.9600 dB, SI-SNR_complex: -2.9426 dB
+Overall [Fixed] - MSE: 0.010683, ScaleAligned_MSE: 0.009735, SC: 0.5803, Pearson: 0.5803
+Overall [Fixed] - SI-SNR_real: -1.3348 dB, SI-SNR_paper: -1.3348 dB, SI-SNR_repo: -1.3348 dB, SI-SNR_complex: -1.3202 dB
+Overall [Fixed] - MSE: 0.011422, ScaleAligned_MSE: 0.010469, SC: 0.6514, Pearson: 0.6515
+Overall [Fixed] - SI-SNR_real: -0.3845 dB, SI-SNR_paper: -0.3845 dB, SI-SNR_repo: -0.3845 dB, SI-SNR_complex: -0.3717 dB
+Overall [Fixed] - MSE: 0.011990, ScaleAligned_MSE: 0.011490, SC: 0.6917, Pearson: 0.6917
+Overall [Fixed] - SI-SNR_real: 1.0217 dB, SI-SNR_paper: 1.0217 dB, SI-SNR_repo: 1.0217 dB, SI-SNR_complex: 1.0327 dB
+Overall [Fixed] - MSE: 0.012804, ScaleAligned_MSE: 0.012675, SC: 0.7474, Pearson: 0.7474
+Overall [Fixed] - SI-SNR_real: 4.3906 dB, SI-SNR_paper: 4.3906 dB, SI-SNR_repo: 4.3906 dB, SI-SNR_complex: 4.4004 dB
+Overall [Fixed] - MSE: 0.011352, ScaleAligned_MSE: 0.010931, SC: 0.8552, Pearson: 0.8553
+Overall [Fixed] - SI-SNR_real: 8.2376 dB, SI-SNR_paper: 8.2376 dB, SI-SNR_repo: 8.2376 dB, SI-SNR_complex: 8.2475 dB
+Overall [Fixed] - MSE: 0.007815, ScaleAligned_MSE: 0.007013, SC: 0.9303, Pearson: 0.9303
+Overall [Fixed] - SI-SNR_real: 12.5712 dB, SI-SNR_paper: 12.5712 dB, SI-SNR_repo: 12.5712 dB, SI-SNR_complex: 12.5794 dB
+Overall [Fixed] - MSE: 0.004433, ScaleAligned_MSE: 0.003466, SC: 0.9708, Pearson: 0.9708
+Overall [Fixed] - SI-SNR_real: 17.6417 dB, SI-SNR_paper: 17.6417 dB, SI-SNR_repo: 17.6417 dB, SI-SNR_complex: 17.6503 dB
+Overall [Fixed] - MSE: 0.002301, ScaleAligned_MSE: 0.001317, SC: 0.9897, Pearson: 0.9897
+Overall [Fixed] - SI-SNR_real: 22.9198 dB, SI-SNR_paper: 22.9198 dB, SI-SNR_repo: 22.9198 dB, SI-SNR_complex: 22.9296 dB
+Overall [Fixed] - MSE: 0.001184, ScaleAligned_MSE: 0.000436, SC: 0.9967, Pearson: 0.9967
+Overall [Fixed] - SI-SNR_real: 27.3634 dB, SI-SNR_paper: 27.3634 dB, SI-SNR_repo: 27.3634 dB, SI-SNR_complex: 27.3766 dB
+Overall [Fixed] - MSE: 0.000815, ScaleAligned_MSE: 0.000167, SC: 0.9988, Pearson: 0.9988
+Overall [Fixed] - SI-SNR_real: 29.5215 dB, SI-SNR_paper: 29.5215 dB, SI-SNR_repo: 29.5215 dB, SI-SNR_complex: 29.5386 dB
+Overall [Fixed] - MSE: 0.000804, ScaleAligned_MSE: 0.000107, SC: 0.9992, Pearson: 0.9992
+Global Avg Inference Time per Sample: 4.8563 ms
+=== Training Summary ===
+Total training time: 41655.8s (694.3m)
+Average epoch time: 438.5s
+Best validation loss: -10.8110
+Dataset: 8PSK-H, DataLength: 4096
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  19.72 M
+fwd MACs:                                                               1.4 TMACs
+fwd FLOPs:                                                              2.81 TFLOPS
+Overall [Fixed] - SI-SNR_real: -3.0322 dB, SI-SNR_paper: -3.0322 dB, SI-SNR_repo: -3.0322 dB, SI-SNR_complex: -2.9970 dB
+Overall [Fixed] - MSE: 0.010722, ScaleAligned_MSE: 0.009741, SC: 0.5779, Pearson: 0.5780
+Overall [Fixed] - SI-SNR_real: -1.3737 dB, SI-SNR_paper: -1.3737 dB, SI-SNR_repo: -1.3737 dB, SI-SNR_complex: -1.3466 dB
+Overall [Fixed] - MSE: 0.010989, ScaleAligned_MSE: 0.010192, SC: 0.6493, Pearson: 0.6493
+Overall [Fixed] - SI-SNR_real: -0.3952 dB, SI-SNR_paper: -0.3952 dB, SI-SNR_repo: -0.3952 dB, SI-SNR_complex: -0.3697 dB
+Overall [Fixed] - MSE: 0.011184, ScaleAligned_MSE: 0.010961, SC: 0.6907, Pearson: 0.6907
+Overall [Fixed] - SI-SNR_real: 0.3115 dB, SI-SNR_paper: 0.3115 dB, SI-SNR_repo: 0.3115 dB, SI-SNR_complex: 0.3352 dB
+Overall [Fixed] - MSE: 0.012530, ScaleAligned_MSE: 0.012474, SC: 0.7191, Pearson: 0.7192
+Overall [Fixed] - SI-SNR_real: 2.5599 dB, SI-SNR_paper: 2.5599 dB, SI-SNR_repo: 2.5599 dB, SI-SNR_complex: 2.5872 dB
+Overall [Fixed] - MSE: 0.012172, ScaleAligned_MSE: 0.011945, SC: 0.7981, Pearson: 0.7983
+Overall [Fixed] - SI-SNR_real: 5.1733 dB, SI-SNR_paper: 5.1733 dB, SI-SNR_repo: 5.1733 dB, SI-SNR_complex: 5.1969 dB
+Overall [Fixed] - MSE: 0.010570, ScaleAligned_MSE: 0.010201, SC: 0.8676, Pearson: 0.8677
+Overall [Fixed] - SI-SNR_real: 7.6267 dB, SI-SNR_paper: 7.6267 dB, SI-SNR_repo: 7.6267 dB, SI-SNR_complex: 7.6540 dB
+Overall [Fixed] - MSE: 0.008784, ScaleAligned_MSE: 0.008396, SC: 0.9104, Pearson: 0.9105
+Overall [Fixed] - SI-SNR_real: 10.6061 dB, SI-SNR_paper: 10.6061 dB, SI-SNR_repo: 10.6061 dB, SI-SNR_complex: 10.6373 dB
+Overall [Fixed] - MSE: 0.006203, ScaleAligned_MSE: 0.005815, SC: 0.9453, Pearson: 0.9455
+Overall [Fixed] - SI-SNR_real: 12.7036 dB, SI-SNR_paper: 12.7036 dB, SI-SNR_repo: 12.7036 dB, SI-SNR_complex: 12.7354 dB
+Overall [Fixed] - MSE: 0.004724, ScaleAligned_MSE: 0.004425, SC: 0.9608, Pearson: 0.9609
+Overall [Fixed] - SI-SNR_real: 14.6068 dB, SI-SNR_paper: 14.6068 dB, SI-SNR_repo: 14.6068 dB, SI-SNR_complex: 14.6441 dB
+Overall [Fixed] - MSE: 0.003540, ScaleAligned_MSE: 0.003183, SC: 0.9730, Pearson: 0.9731
+Overall [Fixed] - SI-SNR_real: 13.5955 dB, SI-SNR_paper: 13.5955 dB, SI-SNR_repo: 13.5955 dB, SI-SNR_complex: 13.6298 dB
+Overall [Fixed] - MSE: 0.004169, ScaleAligned_MSE: 0.003888, SC: 0.9670, Pearson: 0.9671
+Global Avg Inference Time per Sample: 2.6410 ms
+=== Training Summary ===
+Total training time: 11876.2s (197.9m)
+Average epoch time: 215.9s
+Best validation loss: -5.6210
+Dataset: QAM-A, DataLength: 4096
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  19.72 M
+fwd MACs:                                                               1.4 TMACs
+fwd FLOPs:                                                              2.81 TFLOPS
+Overall [Fixed] - SI-SNR_real: 2.0245 dB, SI-SNR_paper: 2.0245 dB, SI-SNR_repo: 2.0245 dB, SI-SNR_complex: 2.0715 dB
+Overall [Fixed] - MSE: 0.027629, ScaleAligned_MSE: 0.022126, SC: 0.7839, Pearson: 0.7849
+Overall [Fixed] - SI-SNR_real: 2.7700 dB, SI-SNR_paper: 2.7700 dB, SI-SNR_repo: 2.7700 dB, SI-SNR_complex: 2.8113 dB
+Overall [Fixed] - MSE: 0.024340, ScaleAligned_MSE: 0.020794, SC: 0.8088, Pearson: 0.8096
+Overall [Fixed] - SI-SNR_real: 3.2612 dB, SI-SNR_paper: 3.2612 dB, SI-SNR_repo: 3.2612 dB, SI-SNR_complex: 3.2991 dB
+Overall [Fixed] - MSE: 0.021978, ScaleAligned_MSE: 0.020308, SC: 0.8241, Pearson: 0.8248
+Overall [Fixed] - SI-SNR_real: 3.5964 dB, SI-SNR_paper: 3.5964 dB, SI-SNR_repo: 3.5964 dB, SI-SNR_complex: 3.6350 dB
+Overall [Fixed] - MSE: 0.020755, ScaleAligned_MSE: 0.019407, SC: 0.8340, Pearson: 0.8347
+Overall [Fixed] - SI-SNR_real: 3.8382 dB, SI-SNR_paper: 3.8382 dB, SI-SNR_repo: 3.8382 dB, SI-SNR_complex: 3.8794 dB
+Overall [Fixed] - MSE: 0.019865, ScaleAligned_MSE: 0.018908, SC: 0.8410, Pearson: 0.8417
+Overall [Fixed] - SI-SNR_real: 4.0159 dB, SI-SNR_paper: 4.0159 dB, SI-SNR_repo: 4.0159 dB, SI-SNR_complex: 4.0577 dB
+Overall [Fixed] - MSE: 0.019296, ScaleAligned_MSE: 0.018356, SC: 0.8459, Pearson: 0.8467
+Overall [Fixed] - SI-SNR_real: 4.1034 dB, SI-SNR_paper: 4.1034 dB, SI-SNR_repo: 4.1034 dB, SI-SNR_complex: 4.1468 dB
+Overall [Fixed] - MSE: 0.019049, ScaleAligned_MSE: 0.018422, SC: 0.8483, Pearson: 0.8491
+Overall [Fixed] - SI-SNR_real: 4.1851 dB, SI-SNR_paper: 4.1851 dB, SI-SNR_repo: 4.1851 dB, SI-SNR_complex: 4.2305 dB
+Overall [Fixed] - MSE: 0.018816, ScaleAligned_MSE: 0.018162, SC: 0.8505, Pearson: 0.8513
+Global Avg Inference Time per Sample: 2.6464 ms
+=== Training Summary ===
+Total training time: 2663.0s (44.4m)
+Average epoch time: 156.6s
+Best validation loss: -3.4602
+Dataset: QPSK+16APSK-A, DataLength: 4096
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  19.72 M
+fwd MACs:                                                               1.4 TMACs
+fwd FLOPs:                                                              2.81 TFLOPS
+Overall [Fixed] - SI-SNR_real: -2.6792 dB, SI-SNR_paper: -2.6792 dB, SI-SNR_repo: -2.6792 dB, SI-SNR_complex: -2.6331 dB
+Overall [Fixed] - MSE: 0.026978, ScaleAligned_MSE: 0.022174, SC: 0.5934, Pearson: 0.5940
+Overall [Fixed] - SI-SNR_real: -0.3272 dB, SI-SNR_paper: -0.3272 dB, SI-SNR_repo: -0.3272 dB, SI-SNR_complex: -0.2927 dB
+Overall [Fixed] - MSE: 0.027019, ScaleAligned_MSE: 0.020465, SC: 0.6942, Pearson: 0.6946
+Overall [Fixed] - SI-SNR_real: 1.8234 dB, SI-SNR_paper: 1.8234 dB, SI-SNR_repo: 1.8234 dB, SI-SNR_complex: 1.8559 dB
+Overall [Fixed] - MSE: 0.027409, ScaleAligned_MSE: 0.019213, SC: 0.7766, Pearson: 0.7770
+Overall [Fixed] - SI-SNR_real: 4.3677 dB, SI-SNR_paper: 4.3677 dB, SI-SNR_repo: 4.3677 dB, SI-SNR_complex: 4.3971 dB
+Overall [Fixed] - MSE: 0.029070, ScaleAligned_MSE: 0.017625, SC: 0.8542, Pearson: 0.8545
+Overall [Fixed] - SI-SNR_real: 8.7227 dB, SI-SNR_paper: 8.7227 dB, SI-SNR_repo: 8.7227 dB, SI-SNR_complex: 8.7479 dB
+Overall [Fixed] - MSE: 0.027572, ScaleAligned_MSE: 0.010963, SC: 0.9346, Pearson: 0.9347
+Overall [Fixed] - SI-SNR_real: 16.5412 dB, SI-SNR_paper: 16.5412 dB, SI-SNR_repo: 16.5412 dB, SI-SNR_complex: 16.6163 dB
+Overall [Fixed] - MSE: 0.019941, ScaleAligned_MSE: 0.003370, SC: 0.9820, Pearson: 0.9821
+Overall [Fixed] - SI-SNR_real: 24.7588 dB, SI-SNR_paper: 24.7588 dB, SI-SNR_repo: 24.7588 dB, SI-SNR_complex: 24.9777 dB
+Overall [Fixed] - MSE: 0.014494, ScaleAligned_MSE: 0.001093, SC: 0.9944, Pearson: 0.9944
+Overall [Fixed] - SI-SNR_real: 29.3593 dB, SI-SNR_paper: 29.3593 dB, SI-SNR_repo: 29.3593 dB, SI-SNR_complex: 29.6413 dB
+Overall [Fixed] - MSE: 0.012436, ScaleAligned_MSE: 0.000589, SC: 0.9970, Pearson: 0.9970
+Overall [Fixed] - SI-SNR_real: 31.5459 dB, SI-SNR_paper: 31.5459 dB, SI-SNR_repo: 31.5459 dB, SI-SNR_complex: 31.8303 dB
+Overall [Fixed] - MSE: 0.010056, ScaleAligned_MSE: 0.000398, SC: 0.9980, Pearson: 0.9980
+Overall [Fixed] - SI-SNR_real: 33.7765 dB, SI-SNR_paper: 33.7765 dB, SI-SNR_repo: 33.7765 dB, SI-SNR_complex: 34.0729 dB
+Overall [Fixed] - MSE: 0.009973, ScaleAligned_MSE: 0.000243, SC: 0.9988, Pearson: 0.9988
+Overall [Fixed] - SI-SNR_real: 33.9292 dB, SI-SNR_paper: 33.9292 dB, SI-SNR_repo: 33.9292 dB, SI-SNR_complex: 34.2520 dB
+Overall [Fixed] - MSE: 0.009137, ScaleAligned_MSE: 0.000277, SC: 0.9986, Pearson: 0.9987
+Global Avg Inference Time per Sample: 2.6987 ms
+=== Training Summary ===
+Total training time: 26198.4s (436.6m)
+Average epoch time: 247.2s
+Best validation loss: -16.5782
+Dataset: 2016, DataLength: 128
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  15.44 M
+fwd MACs:                                                               37.7 GMACs
+fwd FLOPs:                                                              75.71 GFLOPS
+Overall [Fixed] - SI-SNR_real: -0.3596 dB, SI-SNR_paper: -0.3596 dB, SI-SNR_repo: -0.3596 dB, SI-SNR_complex: -0.3099 dB
+Overall [Fixed] - MSE: 0.212101, ScaleAligned_MSE: 0.104882, SC: 0.6934, Pearson: 0.6940
+Overall [Fixed] - SI-SNR_real: -0.3657 dB, SI-SNR_paper: -0.3657 dB, SI-SNR_repo: -0.3657 dB, SI-SNR_complex: -0.3225 dB
+Overall [Fixed] - MSE: 0.211331, ScaleAligned_MSE: 0.104635, SC: 0.6932, Pearson: 0.6934
+Overall [Fixed] - SI-SNR_real: -0.3832 dB, SI-SNR_paper: -0.3832 dB, SI-SNR_repo: -0.3832 dB, SI-SNR_complex: -0.3442 dB
+Overall [Fixed] - MSE: 0.211167, ScaleAligned_MSE: 0.106260, SC: 0.6926, Pearson: 0.6922
+Overall [Fixed] - SI-SNR_real: -0.1339 dB, SI-SNR_paper: -0.1339 dB, SI-SNR_repo: -0.1339 dB, SI-SNR_complex: -0.0899 dB
+Overall [Fixed] - MSE: 0.202549, ScaleAligned_MSE: 0.108117, SC: 0.7032, Pearson: 0.7020
+Overall [Fixed] - SI-SNR_real: 0.8520 dB, SI-SNR_paper: 0.8520 dB, SI-SNR_repo: 0.8520 dB, SI-SNR_complex: 0.9516 dB
+Overall [Fixed] - MSE: 0.179343, ScaleAligned_MSE: 0.114016, SC: 0.7404, Pearson: 0.7393
+Overall [Fixed] - SI-SNR_real: 4.0117 dB, SI-SNR_paper: 4.0117 dB, SI-SNR_repo: 4.0117 dB, SI-SNR_complex: 4.0580 dB
+Overall [Fixed] - MSE: 0.121658, ScaleAligned_MSE: 0.100865, SC: 0.8334, Pearson: 0.8309
+Overall [Fixed] - SI-SNR_real: 7.0054 dB, SI-SNR_paper: 7.0054 dB, SI-SNR_repo: 7.0054 dB, SI-SNR_complex: 7.0087 dB
+Overall [Fixed] - MSE: 0.093413, ScaleAligned_MSE: 0.080643, SC: 0.8841, Pearson: 0.8820
+Overall [Fixed] - SI-SNR_real: 11.3082 dB, SI-SNR_paper: 11.3082 dB, SI-SNR_repo: 11.3082 dB, SI-SNR_complex: 11.3167 dB
+Overall [Fixed] - MSE: 0.055052, ScaleAligned_MSE: 0.043606, SC: 0.9448, Pearson: 0.9433
+Overall [Fixed] - SI-SNR_real: 14.3158 dB, SI-SNR_paper: 14.3158 dB, SI-SNR_repo: 14.3158 dB, SI-SNR_complex: 14.3865 dB
+Overall [Fixed] - MSE: 0.045202, ScaleAligned_MSE: 0.030447, SC: 0.9629, Pearson: 0.9622
+Overall [Fixed] - SI-SNR_real: 15.4387 dB, SI-SNR_paper: 15.4387 dB, SI-SNR_repo: 15.4387 dB, SI-SNR_complex: 15.6540 dB
+Overall [Fixed] - MSE: 0.052084, ScaleAligned_MSE: 0.033502, SC: 0.9559, Pearson: 0.9559
+Overall [Fixed] - SI-SNR_real: 16.8882 dB, SI-SNR_paper: 16.8882 dB, SI-SNR_repo: 16.8882 dB, SI-SNR_complex: 17.1402 dB
+Overall [Fixed] - MSE: 0.045959, ScaleAligned_MSE: 0.025927, SC: 0.9656, Pearson: 0.9658
+Overall [Fixed] - SI-SNR_real: 17.8368 dB, SI-SNR_paper: 17.8368 dB, SI-SNR_repo: 17.8368 dB, SI-SNR_complex: 18.2132 dB
+Overall [Fixed] - MSE: 0.044892, ScaleAligned_MSE: 0.024925, SC: 0.9683, Pearson: 0.9682
+Overall [Fixed] - SI-SNR_real: 18.2506 dB, SI-SNR_paper: 18.2506 dB, SI-SNR_repo: 18.2506 dB, SI-SNR_complex: 18.5650 dB
+Overall [Fixed] - MSE: 0.040620, ScaleAligned_MSE: 0.021952, SC: 0.9728, Pearson: 0.9729
+Overall [Fixed] - SI-SNR_real: 18.3318 dB, SI-SNR_paper: 18.3318 dB, SI-SNR_repo: 18.3318 dB, SI-SNR_complex: 18.7566 dB
+Overall [Fixed] - MSE: 0.038534, ScaleAligned_MSE: 0.018848, SC: 0.9751, Pearson: 0.9749
+Overall [Fixed] - SI-SNR_real: 18.5349 dB, SI-SNR_paper: 18.5349 dB, SI-SNR_repo: 18.5349 dB, SI-SNR_complex: 18.9014 dB
+Overall [Fixed] - MSE: 0.038212, ScaleAligned_MSE: 0.018540, SC: 0.9795, Pearson: 0.9793
+Global Avg Inference Time per Sample: 0.7216 ms
+=== Training Summary ===
+Total training time: 1073.1s (17.9m)
+Average epoch time: 18.2s
+Best validation loss: -9.4200
+Dataset: 2018, DataLength: 1024
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  16.28 M
+fwd MACs:                                                               320.45 GMACs
+fwd FLOPs:                                                              643.28 GFLOPS
+Overall [Fixed] - SI-SNR_real: -0.0321 dB, SI-SNR_paper: -0.0321 dB, SI-SNR_repo: -0.0321 dB, SI-SNR_complex: -0.0273 dB
+Overall [Fixed] - MSE: 0.255688, ScaleAligned_MSE: 0.135038, SC: 0.7059, Pearson: 0.7059
+Overall [Fixed] - SI-SNR_real: -0.0003 dB, SI-SNR_paper: -0.0003 dB, SI-SNR_repo: -0.0003 dB, SI-SNR_complex: 0.0054 dB
+Overall [Fixed] - MSE: 0.254588, ScaleAligned_MSE: 0.134662, SC: 0.7072, Pearson: 0.7073
+Overall [Fixed] - SI-SNR_real: 0.6452 dB, SI-SNR_paper: 0.6452 dB, SI-SNR_repo: 0.6452 dB, SI-SNR_complex: 0.6555 dB
+Overall [Fixed] - MSE: 0.235935, ScaleAligned_MSE: 0.137313, SC: 0.7331, Pearson: 0.7331
+Overall [Fixed] - SI-SNR_real: 5.4269 dB, SI-SNR_paper: 5.4269 dB, SI-SNR_repo: 5.4269 dB, SI-SNR_complex: 5.4236 dB
+Overall [Fixed] - MSE: 0.120767, ScaleAligned_MSE: 0.108625, SC: 0.8781, Pearson: 0.8778
+Overall [Fixed] - SI-SNR_real: 14.4772 dB, SI-SNR_paper: 14.4772 dB, SI-SNR_repo: 14.4772 dB, SI-SNR_complex: 14.4566 dB
+Overall [Fixed] - MSE: 0.029315, ScaleAligned_MSE: 0.024707, SC: 0.9788, Pearson: 0.9787
+Overall [Fixed] - SI-SNR_real: 22.2974 dB, SI-SNR_paper: 22.2974 dB, SI-SNR_repo: 22.2974 dB, SI-SNR_complex: 22.2855 dB
+Overall [Fixed] - MSE: 0.021838, ScaleAligned_MSE: 0.007068, SC: 0.9945, Pearson: 0.9945
+Overall [Fixed] - SI-SNR_real: 29.0607 dB, SI-SNR_paper: 29.0607 dB, SI-SNR_repo: 29.0607 dB, SI-SNR_complex: 29.0877 dB
+Overall [Fixed] - MSE: 0.024089, ScaleAligned_MSE: 0.004302, SC: 0.9968, Pearson: 0.9968
+Overall [Fixed] - SI-SNR_real: 34.0766 dB, SI-SNR_paper: 34.0766 dB, SI-SNR_repo: 34.0766 dB, SI-SNR_complex: 34.2206 dB
+Overall [Fixed] - MSE: 0.024385, ScaleAligned_MSE: 0.002856, SC: 0.9979, Pearson: 0.9979
+Overall [Fixed] - SI-SNR_real: 36.5032 dB, SI-SNR_paper: 36.5032 dB, SI-SNR_repo: 36.5032 dB, SI-SNR_complex: 36.7809 dB
+Overall [Fixed] - MSE: 0.024522, ScaleAligned_MSE: 0.002748, SC: 0.9980, Pearson: 0.9980
+Overall [Fixed] - SI-SNR_real: 36.8696 dB, SI-SNR_paper: 36.8696 dB, SI-SNR_repo: 36.8696 dB, SI-SNR_complex: 37.2041 dB
+Overall [Fixed] - MSE: 0.024189, ScaleAligned_MSE: 0.002395, SC: 0.9983, Pearson: 0.9983
+Overall [Fixed] - SI-SNR_real: 37.0862 dB, SI-SNR_paper: 37.0862 dB, SI-SNR_repo: 37.0862 dB, SI-SNR_complex: 37.4371 dB
+Overall [Fixed] - MSE: 0.023851, ScaleAligned_MSE: 0.002212, SC: 0.9984, Pearson: 0.9984
+Global Avg Inference Time per Sample: 1.3807 ms
+=== Training Summary ===
+Total training time: 8649.5s (144.2m)
+Average epoch time: 61.8s
+Best validation loss: -19.6203
+Dataset: TorchSig, DataLength: 4096
+Model Type: Stage385 (Stage381-XL without encoder-stage1 UniRepLK; widths 96/192/384/768)
+Total Training Params:                                                  19.72 M
+fwd MACs:                                                               1.4 TMACs
+fwd FLOPs:                                                              2.81 TFLOPS
+Overall [Fixed] - SI-SNR_real: 0.0901 dB, SI-SNR_paper: 0.0901 dB, SI-SNR_repo: 0.0901 dB, SI-SNR_complex: 0.0899 dB
+Overall [Fixed] - MSE: 0.030359, ScaleAligned_MSE: 0.020697, SC: 0.7084, Pearson: 0.7083
+Overall [Fixed] - SI-SNR_real: 0.0121 dB, SI-SNR_paper: 0.0121 dB, SI-SNR_repo: 0.0121 dB, SI-SNR_complex: 0.0124 dB
+Overall [Fixed] - MSE: 0.030596, ScaleAligned_MSE: 0.020742, SC: 0.7068, Pearson: 0.7068
+Overall [Fixed] - SI-SNR_real: 0.0921 dB, SI-SNR_paper: 0.0921 dB, SI-SNR_repo: 0.0921 dB, SI-SNR_complex: 0.0923 dB
+Overall [Fixed] - MSE: 0.031040, ScaleAligned_MSE: 0.021056, SC: 0.7094, Pearson: 0.7094
+Overall [Fixed] - SI-SNR_real: 0.3969 dB, SI-SNR_paper: 0.3969 dB, SI-SNR_repo: 0.3969 dB, SI-SNR_complex: 0.3982 dB
+Overall [Fixed] - MSE: 0.032844, ScaleAligned_MSE: 0.023233, SC: 0.7221, Pearson: 0.7221
+Overall [Fixed] - SI-SNR_real: 1.5642 dB, SI-SNR_paper: 1.5642 dB, SI-SNR_repo: 1.5642 dB, SI-SNR_complex: 1.5667 dB
+Overall [Fixed] - MSE: 0.033149, ScaleAligned_MSE: 0.024467, SC: 0.7656, Pearson: 0.7656
+Overall [Fixed] - SI-SNR_real: 3.6744 dB, SI-SNR_paper: 3.6744 dB, SI-SNR_repo: 3.6744 dB, SI-SNR_complex: 3.6788 dB
+Overall [Fixed] - MSE: 0.030172, ScaleAligned_MSE: 0.023078, SC: 0.8309, Pearson: 0.8310
+Overall [Fixed] - SI-SNR_real: 6.0832 dB, SI-SNR_paper: 6.0832 dB, SI-SNR_repo: 6.0832 dB, SI-SNR_complex: 6.0908 dB
+Overall [Fixed] - MSE: 0.026075, ScaleAligned_MSE: 0.019683, SC: 0.8826, Pearson: 0.8827
+Overall [Fixed] - SI-SNR_real: 8.3199 dB, SI-SNR_paper: 8.3199 dB, SI-SNR_repo: 8.3199 dB, SI-SNR_complex: 8.3328 dB
+Overall [Fixed] - MSE: 0.022620, ScaleAligned_MSE: 0.016126, SC: 0.9146, Pearson: 0.9147
+Overall [Fixed] - SI-SNR_real: 10.2275 dB, SI-SNR_paper: 10.2275 dB, SI-SNR_repo: 10.2275 dB, SI-SNR_complex: 10.2485 dB
+Overall [Fixed] - MSE: 0.020278, ScaleAligned_MSE: 0.013330, SC: 0.9329, Pearson: 0.9329
+Overall [Fixed] - SI-SNR_real: 11.0400 dB, SI-SNR_paper: 11.0400 dB, SI-SNR_repo: 11.0400 dB, SI-SNR_complex: 11.0691 dB
+Overall [Fixed] - MSE: 0.020215, ScaleAligned_MSE: 0.012613, SC: 0.9357, Pearson: 0.9358
+Overall [Fixed] - SI-SNR_real: 11.7718 dB, SI-SNR_paper: 11.7718 dB, SI-SNR_repo: 11.7718 dB, SI-SNR_complex: 11.8126 dB
+Overall [Fixed] - MSE: 0.020063, ScaleAligned_MSE: 0.011822, SC: 0.9400, Pearson: 0.9401
+Global Avg Inference Time per Sample: 3.0561 ms
+=== Training Summary ===
+Total training time: 14609.3s (243.5m)
+Average epoch time: 176.0s
+Best validation loss: -4.8843

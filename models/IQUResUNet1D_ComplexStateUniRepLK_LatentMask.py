@@ -1,10 +1,11 @@
-"""Stage377: Stage56 + independent complex-state BiMamba + UniRepLK + mask.
+"""Stages377/379: Stage56 + complex-state BiMamba + UniRepLK + mask.
 
 This is the strict no-ASC counterpart of Stage371.  The encoder keeps the
 Stage365 placement of the independent complex-state bidirectional SSMs and
 parallel UniRepLK deltas, while the decoder is Stage56's plain skip decoder.
-Real simplex masks are applied at every encoder scale before a single shared
-decoder call for all source slots.
+Real masks are applied at every encoder scale before a single shared decoder
+call for all source slots. Stage377 uses source-wise softmax masks; Stage379
+uses independent sigmoid masks.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from models.IQUResUNet1D_NoASC import PlainSkipDecoder
 class IQUResUNet1D_ComplexStateUniRepLK_LatentMask(
     IQUBiMamba1D_IndependentComplexStateUniRepLK
 ):
-    """Stage56 decoder with the Stage365 encoder and a real simplex mask."""
+    """Stage56 decoder with the Stage365 encoder and configurable real masks."""
 
     def __init__(
         self,
@@ -31,19 +32,19 @@ class IQUResUNet1D_ComplexStateUniRepLK_LatentMask(
         **kwargs,
     ) -> None:
         mode = str(latent_mask_mode).lower()
-        if mode != "real":
+        if mode not in {"real", "sigmoid"}:
             raise ValueError(
-                "Stage377 currently supports only the real simplex mask; "
+                "Stages377/379 support real (source-softmax) or sigmoid masks; "
                 f"got latent_mask_mode={latent_mask_mode!r}"
             )
         num_classes = kwargs.get("num_classes")
         if num_classes is None:
-            raise ValueError("Stage377 requires num_classes")
+            raise ValueError("Stages377/379 require num_classes")
         num_sources = int(num_classes) // 2
         if int(num_classes) != 2 * num_sources or num_sources not in (2, 3):
-            raise ValueError("Stage377 expects two or three complex source slots")
+            raise ValueError("Stages377/379 expect two or three complex source slots")
         if bool(kwargs.get("deep_supervision", False)):
-            raise ValueError("Stage377 requires deep_supervision=false")
+            raise ValueError("Stages377/379 require deep_supervision=false")
 
         # The parent builds the Stage365 encoder (complex-state BiMamba plus
         # UniRepLK). Replace only its ASC decoder with Stage56's plain decoder.
@@ -91,12 +92,14 @@ class IQUResUNet1D_ComplexStateUniRepLK_LatentMask(
     def _make_masks(
         self, features: torch.Tensor, head: nn.Module
     ) -> torch.Tensor:
-        """Predict one source-simplex mask per real latent feature channel."""
+        """Predict one real mask per source and latent feature channel."""
 
         batch, channels, length = features.shape
         logits = head(features).reshape(
             batch, self.latent_mask_num_sources, channels, length
         )
+        if self.latent_mask_mode == "sigmoid":
+            return torch.sigmoid(logits)
         return torch.softmax(logits, dim=1)
 
     def _flatten_source_slots(
@@ -117,7 +120,7 @@ class IQUResUNet1D_ComplexStateUniRepLK_LatentMask(
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 3 or x.size(1) != 2:
             raise ValueError(
-                "Stage377 expects I/Q input with shape [B, 2, L], "
+                "Stages377/379 expect I/Q input with shape [B, 2, L], "
                 f"got {tuple(x.shape)}"
             )
 
@@ -130,7 +133,7 @@ class IQUResUNet1D_ComplexStateUniRepLK_LatentMask(
         batch_slots, _, length = decoded.shape
         if batch_slots % self.latent_mask_num_sources != 0:
             raise RuntimeError(
-                "Stage377 decoder batch is not divisible by source slots: "
+                "Stage377/379 decoder batch is not divisible by source slots: "
                 f"batch={batch_slots}, slots={self.latent_mask_num_sources}"
             )
         batch = batch_slots // self.latent_mask_num_sources
